@@ -1,95 +1,177 @@
-AMR ROS2 — Ackermann 2-Wheel Steering
-Autonomous Mobile Robot
+# AMR ROS2 — Ackermann 2-Wheel Steering
+
+**Autonomous Mobile Robot Control System**  
 Automation of Electrical Engineering Department — Institut Teknologi Sepuluh Nopember Surabaya
 
-Overview
+---
+
+## Overview
+
 This repository contains the ROS2-based software stack for an indoor Autonomous Mobile Robot (AMR) developed as part of an automation engineering project at ITS Surabaya. The system adopts a two-layer control architecture: a high-level controller (Intel NUC 13) running ROS2 Humble on Ubuntu 22.04, and a low-level controller (STM32F407VGTx) responsible for real-time PWM generation and motor actuation.
-Steering follows the Ackermann geometry with a single servo controlling two mechanically synchronized front wheels, eliminating wheel scrub during cornering. Longitudinal motion is driven by four DC motors through BTS7960 half-bridge drivers, controlled via a USB CDC serial link from the NUC to the STM32.
+
+Steering follows the **Ackermann geometry** with a single servo controlling two mechanically synchronized front wheels, eliminating wheel scrub during cornering. Longitudinal motion is driven by four DC motors through BTS7960 half-bridge drivers, controlled via a USB CDC serial link from the NUC to the STM32.
+
 The current implementation supports full manual teleoperation via a wireless joystick with a hardware deadman switch, and lays the groundwork for sensor fusion and autonomous navigation using Nav2.
 
-Hardware
-ComponentPartRoleHigh-Level ControllerIntel NUC 13 i7ROS2 host, sensor aggregationLow-Level ControllerSTM32F407VGTxReal-time PWM, USB CDC bridgeDrive SystemDC Motor × 4 + BTS7960Differential tractionSteeringServo × 1 (front axle, synchronized)Ackermann 2WS, ±45°LiDARSlamtec RPLIDAR C12D obstacle scanDepth CameraIntel RealSense D455RGB-D stereoGNSSU-Blox (USB)Outdoor positioningHMIRexus GX300 Wireless JoystickManual teleoperation
-Power Distribution
-Two electrically isolated power supplies are used to prevent motor switching noise from coupling into the NUC:
+---
 
-PSU 1 — 19V/5A, dedicated to Intel NUC
-PSU 2 — 24V/20A, dedicated to DC motors and BTS7960 drivers
+## Hardware
+
+| Component | Part | Role |
+|---|---|---|
+| High-Level Controller | Intel NUC 13 i7 | ROS2 host, sensor aggregation |
+| Low-Level Controller | STM32F407VGTx | Real-time PWM, USB CDC bridge |
+| Drive System | DC Motor × 4 + BTS7960 | Differential traction |
+| Steering | Servo × 1 (front axle, synchronized) | Ackermann 2WS, ±45° |
+| LiDAR | Slamtec RPLIDAR C1 | 2D obstacle scan |
+| Depth Camera | Intel RealSense D455 | RGB-D stereo |
+| GNSS | U-Blox (USB) | Outdoor positioning |
+| HMI | Rexus GX300 Wireless Joystick | Manual teleoperation |
+
+### Power Distribution
+
+Two electrically isolated power supplies are used to prevent motor switching noise from coupling into the NUC.
+
+| PSU | Rating | Load |
+|---|---|---|
+| PSU 1 | 19V / 5A | Intel NUC |
+| PSU 2 | 24V / 20A | DC Motors + BTS7960 |
 
 A bulk capacitor (2200–4700 µF, 35V) is placed on the 24V rail in close proximity to the BTS7960 to suppress voltage spikes during motor braking. The STM32 is powered through the NUC USB port (3.3V), which provides inherent galvanic isolation at the logic level. Ground is shared between the STM32 and BTS7960.
-USB Port Assignments (NUC)
-DevicePortGPS U-Blox/dev/ttyACM0STM32F407 (Virtual COM)/dev/ttyACM1RPLIDAR C1 (CP2102N)/dev/ttyUSB0Joystick Rexus GX300/dev/input/js0
 
-Port assignments may swap between sessions if devices are reconnected. udev rules to assign persistent symlinks are planned for the next development phase.
+### USB Port Assignments (NUC)
 
+| Device | Port |
+|---|---|
+| GPS U-Blox | `/dev/ttyACM0` |
+| STM32F407 (Virtual COM) | `/dev/ttyACM1` |
+| RPLIDAR C1 (CP2102N) | `/dev/ttyUSB0` |
+| Joystick Rexus GX300 | `/dev/input/js0` |
 
-Software Architecture
-Node Graph
+> Port assignments may swap between sessions if devices are reconnected in a different order. Persistent udev symlink rules are planned for the next development phase.
+
+---
+
+## Software Architecture
+
+### Node Graph
+
+```
 [Rexus GX300 Joystick]
         │  /dev/input/js0
         ▼
-   [joy_node]  ──────────────────────────  /joy  (sensor_msgs/Joy)
+   [joy_node]  ───────────────────────────────  /joy  (sensor_msgs/Joy)
         │
         ▼
- [stm32_bridge]  ─────────────────────────  /joy subscriber
-        │  USB CDC Serial @ 115200 baud
-        │  /dev/ttyACM1
-        │  Protocol: "V:{pwm},S:{deg}\n"
+ [stm32_bridge]  ──────────────────────────────  subscribes /joy
+        │  USB CDC Serial @ 115200 baud  (/dev/ttyACM1)
+        │  Tx: "V:{pwm},S:{deg}\n"
+        │  Rx: "E:{delta_encoder}\n"
         ▼
   [STM32F407VGTx]
-      ├─ TIM3 Ch1/Ch2  →  BTS7960  →  DC Motor ×4
-      └─ TIM12 Ch1     →  Servo    →  Front axle (Ackermann)
+      ├── TIM3 Ch1/Ch2  →  BTS7960  →  DC Motor × 4  (traction)
+      └── TIM12 Ch1     →  Servo    →  Front axle     (Ackermann 2WS)
 
 [RPLIDAR C1]      /dev/ttyUSB0  →  [rplidar_node]           →  /scan
 [GPS U-Blox]      /dev/ttyACM0  →  [gps_node]               →  /fix
-[RealSense D455]  USB3          →  [realsense2_camera_node]  →  /camera/camera/...
-Package Structure
-amr_ws/src/
-├── amr_bringup/                  # ament_python — launch and configuration
-│   ├── launch/
-│   │   ├── amr_launch.py         # Brings up joy_node + stm32_bridge
-│   │   └── sensors_launch.py     # Brings up LiDAR, GPS, RealSense
-│   ├── config/
-│   │   └── joy_params.yaml
-│   ├── package.xml
-│   └── setup.py
-│
-├── amr_controller/               # ament_cmake — C++ control node
-│   ├── src/
-│   │   └── stm32_bridge.cpp      # Subscribes /joy, writes serial to STM32
-│   ├── CMakeLists.txt
-│   └── package.xml
-│
-└── rplidar_ros/                  # External — clone from Slamtec (branch: ros2)
-build/, install/, and log/ directories are generated by colcon at build time and are excluded from version control.
+[RealSense D455]  USB3 port     →  [realsense2_camera_node]  →  /camera/camera/...
+```
 
-Serial Protocol — NUC to STM32
-Commands are sent as ASCII strings terminated by newline:
-V:{velocity},S:{steering}\n
+### Package Structure
 
-V  →  integer, range −4000 to +4000  (PWM counts)
-       positive = forward, negative = reverse
+```
+amr_ws/
+├── build/                        # Generated by colcon — excluded from VCS
+├── install/                      # Generated by colcon — excluded from VCS
+├── log/                          # Generated by colcon — excluded from VCS
+└── src/
+    ├── amr_bringup/              # ament_python — launch files and configuration
+    │   ├── launch/
+    │   │   ├── amr_launch.py     # Starts joy_node + stm32_bridge
+    │   │   └── sensors_launch.py # Starts LiDAR, GPS, RealSense nodes
+    │   ├── config/
+    │   │   └── joy_params.yaml
+    │   ├── package.xml
+    │   └── setup.py
+    │
+    ├── amr_controller/           # ament_cmake — C++ serial bridge node
+    │   ├── src/
+    │   │   └── stm32_bridge.cpp  # Reads /joy, writes serial commands to STM32
+    │   ├── CMakeLists.txt
+    │   └── package.xml
+    │
+    └── rplidar_ros/              # External — clone separately (see Setup)
+```
 
-S  →  integer, range −45 to +45  (degrees)
-       positive = right, negative = left
-Example: V:1500,S:-20\n — move forward at moderate speed, steering 20° left.
-STM32 returns encoder feedback over the same link:
-E:{delta_encoder}\n
-The STM32 firmware parses incoming frames using sscanf((char*)Buf, "V:%ld,S:%ld", &v_val, &s_val) inside CDC_Receive_FS. Implementation is bare-metal without RTOS, fully interrupt-driven.
+---
 
-Joystick — Rexus GX300
-ControlROS2 FieldBehaviorR1 (top-right shoulder)buttons[5]Deadman switch — must be held continuouslyLeft stick verticalaxes[1]Velocity: up = forward, down = reverseRight stick horizontalaxes[3]Steering: left/right
-The deadman switch (buttons[5]) is a hard safety interlock — releasing it immediately sends V:0, S:0 to the STM32 regardless of stick position.
-Note on velocity polarity: The analog axis convention in ROS2 Joy returns +1.0 when the stick is pushed forward. The BTS7960 wiring on this robot requires negation to produce forward motion, so the bridge node applies:
-cppint velocity = static_cast<int>(vel_raw * -MAX_PWM);
-This is intentional and correct. Do not revert.
+## Serial Protocol
 
-Sensor Integration
-SensorInterfaceTopicResolution / RateRPLIDAR C1USB (CP2102N)/scan360° @ ~7000 samples/sGPS U-BloxUSB CDC/fixNMEA, 1 HzRealSense D455 — RGBUSB3/camera/camera/color/image_raw1280×720 @ 30 fpsRealSense D455 — DepthUSB3/camera/camera/depth/image_rect_raw848×480 @ 30 fps
-The RealSense D455 must be connected to a USB 3.x port (blue connector on NUC). Plugging into USB 2.0 will cause the node to fail silently or produce corrupted depth frames.
+Commands are transmitted from the NUC to the STM32 as ASCII strings over USB CDC at 115200 baud.
 
-Setup
-Dependencies
-bashsudo apt install -y \
+**NUC → STM32**
+
+```
+Format  : V:{velocity},S:{steering}\n
+Example : V:1500,S:-20\n
+```
+
+| Field | Type | Range | Description |
+|---|---|---|---|
+| `V` | integer | −4000 to +4000 | Motor PWM — positive = forward, negative = reverse |
+| `S` | integer | −45 to +45 | Servo angle in degrees — positive = right, negative = left |
+
+**STM32 → NUC**
+
+```
+Format : E:{delta_encoder}\n
+```
+
+The STM32 firmware parses incoming frames using:
+```c
+sscanf((char*)Buf, "V:%ld,S:%ld", &v_val, &s_val);
+```
+called inside `CDC_Receive_FS`. The firmware runs bare-metal without RTOS, fully interrupt-driven.
+
+---
+
+## Joystick Mapping — Rexus GX300
+
+| Control | ROS2 Field | Function |
+|---|---|---|
+| R1 (right shoulder) | `buttons[5]` | **Deadman switch** — must be held to enable motion |
+| Left stick ↑↓ | `axes[1]` | Velocity — up = forward, down = reverse |
+| Right stick ←→ | `axes[3]` | Steering — left/right |
+
+The deadman switch is a hard safety interlock implemented in `stm32_bridge.cpp`. Releasing R1 at any time immediately transmits `V:0,S:0` to the STM32, regardless of stick position.
+
+> **Note on velocity polarity:** ROS2 Joy reports `axes[1] = +1.0` when the left stick is pushed forward. Due to BTS7960 wiring on this platform, that value must be negated to produce forward motion:
+> ```cpp
+> int velocity = static_cast<int>(vel_raw * -MAX_PWM);
+> ```
+> This negation is intentional. Do not revert.
+
+---
+
+## Sensors
+
+| Sensor | Interface | Topic | Output |
+|---|---|---|---|
+| RPLIDAR C1 | USB — CP2102N | `/scan` | 360° scan, ~7000 samples/s |
+| GPS U-Blox | USB CDC | `/fix` | NMEA `NavSatFix`, 1 Hz |
+| RealSense D455 (RGB) | USB 3.x | `/camera/camera/color/image_raw` | 1280 × 720 @ 30 fps |
+| RealSense D455 (Depth) | USB 3.x | `/camera/camera/depth/image_rect_raw` | 848 × 480 @ 30 fps |
+
+> The RealSense D455 **must** be connected to a USB 3.x port (blue connector on NUC). Connecting to USB 2.0 will cause the node to fail at initialization or produce corrupted depth frames.
+
+---
+
+## Setup
+
+### 1. Install ROS2 Dependencies
+
+```bash
+sudo apt install -y \
   ros-humble-joy \
   ros-humble-teleop-twist-joy \
   ros-humble-nmea-msgs \
@@ -99,52 +181,92 @@ bashsudo apt install -y \
   ros-humble-realsense2-description \
   ros-humble-tf-transformations
 
+# Add user to dialout group for serial port access
 sudo usermod -aG dialout $USER
-# Log out and back in for group change to take effect
-Build
-bashcd ~/amr_ws/src
+# Log out and back in for this to take effect
+```
+
+### 2. Clone and Build
+
+```bash
+cd ~/amr_ws/src
+
+# Clone external LiDAR driver
 git clone -b ros2 https://github.com/Slamtec/rplidar_ros.git
 
+# Install remaining dependencies and build
 cd ~/amr_ws
 rosdep install --from-paths src --ignore-src -r -y
 colcon build
 source install/setup.bash
-Running the System
-bash# Grant serial port access (required each boot)
+```
+
+### 3. Run the System
+
+```bash
+# Grant serial port access — required on every boot
 sudo chmod 666 /dev/ttyACM0 /dev/ttyACM1 /dev/ttyUSB0
 
-# Terminal A — teleoperation
+# Terminal 1 — teleoperation (joystick + STM32 bridge)
 cd ~/amr_ws && source install/setup.bash
 ros2 launch amr_bringup amr_launch.py
 
-# Terminal B — sensor stack
+# Terminal 2 — sensor stack (LiDAR + GPS + RealSense)
 cd ~/amr_ws && source install/setup.bash
 ros2 launch amr_bringup sensors_launch.py
-Verify STM32 Serial (without ROS2)
-bashecho -n "V:500,S:0"   > /dev/ttyACM1   # slow forward
+```
+
+### 4. Verify STM32 Connection (without ROS2)
+
+```bash
+echo -n "V:500,S:0"   > /dev/ttyACM1   # slow forward
 echo -n "V:-500,S:0"  > /dev/ttyACM1   # slow reverse
 echo -n "V:0,S:20"    > /dev/ttyACM1   # steer right, stationary
 echo -n "V:0,S:0"     > /dev/ttyACM1   # stop
+```
 
-Remote Access
-The NUC runs an SSH server enabled at boot. SSH key authentication is preconfigured for the development laptop (azhar@azhar-ASUS-Vivobook).
-bashssh itssurabaya@xx.x.xxx.xxx
-The IP address is assigned via DHCP and may change. If the connection fails, retrieve the current address with ip addr show on the NUC directly.
+---
 
-Known Issues and Workarounds
-IssueRoot CauseResolutionACM port assignment varies between sessionsLinux enumerates USB CDC devices in connection orderPending: udev symlink rulesRealSense node fails to startDevice connected to USB 2.0 portUse USB 3.x (blue) port exclusivelysensors_launch.py untested on hardwareFile created in current session, not yet built on NUCPriority for next session
+## Remote Access
 
-Roadmap
+SSH is enabled and set to start on boot. Key-based authentication is preconfigured for `azhar@azhar-ASUS-Vivobook` — no password required.
 
- Write and deploy udev rules for persistent port naming (/dev/ttyAMR)
- Build and validate sensors_launch.py on NUC hardware
- Calibrate physical steering neutral point and end stops
- Full integration test: joystick → NUC → STM32 → motors + sensors live
- Nav2 stack integration for autonomous waypoint navigation
+```bash
+ssh itssurabaya@10.7.101.193
+```
 
+> The NUC is assigned an IP via DHCP. If the connection fails, run `ip addr show` directly on the NUC to retrieve the current address.
 
-Repository
-URLhttps://github.com/muhammadalazharf/autonomous-mobile-robot-ros2LicenseMITROS DistributionROS2 Humble HawksbillTarget OSUbuntu 22.04 LTSDevelopment Period2026
+---
 
-License
-This project is released under the MIT License. See LICENSE for full terms.
+## Known Issues
+
+| Issue | Cause | Status |
+|---|---|---|
+| ACM port order changes between sessions | Linux enumerates USB CDC devices by connection order | Pending — udev rules planned |
+| `sensors_launch.py` not yet tested on hardware | File created this session, not yet built on NUC | Next session priority |
+| Steering neutral point not calibrated | Physical servo trim not set | Pending — next session |
+
+---
+
+## Roadmap
+
+- [ ] Deploy udev rules for stable port names (`/dev/ttyAMR`, `/dev/ttyGPS`)
+- [ ] Build and run `sensors_launch.py` on NUC hardware
+- [ ] Calibrate physical steering neutral and end stops
+- [ ] Full end-to-end integration test with all subsystems active
+- [ ] Nav2 stack integration for autonomous waypoint navigation
+
+---
+
+## Project Info
+
+| | |
+|---|---|
+| Repository | https://github.com/muhammadalazharf/autonomous-mobile-robot-ros2 |
+| ROS Distribution | ROS2 Humble Hawksbill |
+| Target OS | Ubuntu 22.04 LTS |
+| License | MIT |
+| Development Period | 2026 |
+
+For full development notes, session history, and troubleshooting details, see [`docs/DEVELOPMENT_GUIDE.md`](docs/DEVELOPMENT_GUIDE.md).
