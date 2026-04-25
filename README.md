@@ -1,6 +1,6 @@
 # AMR ROS2 — Ackermann 2-Wheel Steering
 
-**Autonomous Mobile Robot Control System**  
+**Autonomous Mobile Robot**  
 Automation of Electrical Engineering Department — Institut Teknologi Sepuluh Nopember Surabaya
 
 ---
