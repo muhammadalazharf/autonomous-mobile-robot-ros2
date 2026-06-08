@@ -232,7 +232,10 @@ def generate_launch_description():
                 # FIX AUDIT: 0.60 terlalu selektif → banyak keyframe duplikat → memori bengkak.
                 # 0.45 = default yang balance antara deduplikasi dan retensi detail.
                 'Mem/RehearsalSimilarity': '0.45',
-                'Mem/STMSize': '30',
+                # MERGE NUC 7-Juni: STMSize=10 terbukti mempercepat loop closure
+                # di ruangan kecil (lebih sedikit node di-skip dari pencarian).
+                # SEBELUM 30 sempat menyebabkan loop_closure_id selalu 0.
+                'Mem/STMSize': '10',
                 'Mem/UseOdomFeatures': 'false',
                 # ---- Registration: Vis+ICP ----
                 'Reg/Strategy': '2',
@@ -258,6 +261,12 @@ def generate_launch_description():
                 'Grid/MaxObstacleHeight': '1.5',
                 'Grid/MaxGroundHeight': '0.05',
                 'Grid/MinGroundHeight': '-0.05',
+                # MERGE NUC 7-Juni: noise filtering pada occupancy grid (2D),
+                # terpisah dari cloud_noise_filtering_* (3D point cloud).
+                # Radius 0.5m terbukti efektif buang titik noise yang sendirian
+                # di grid map saat sesi mapping 7 Juni.
+                'Grid/NoiseFilteringRadius': '0.5',
+                'Grid/NoiseFilteringMinNeighbors': '5',
                 # ---- Loop closure ----
                 # FIX AUDIT: comment salah sebelumnya — LoopThr lebih TINGGI = LEBIH SULIT accept.
                 # Turun ke 0.11 (default RTAB-Map) = lebih agresif loop closure = koreksi drift lebih baik.
