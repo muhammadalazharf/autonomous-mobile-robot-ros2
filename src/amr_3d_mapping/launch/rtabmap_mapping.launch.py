@@ -263,7 +263,7 @@ def generate_launch_description():
                 # ---- Visual features ----
                 'Vis/FeatureType': '8',
                 'Vis/MaxFeatures': '1000',
-                'Vis/MinInliers': '10',
+                'Vis/MinInliers': '8',  # 10→8: lab kecil low-texture, kurangi loop closure rejected
                 # ---- Grid / occupancy map ----
                 'Grid/FromDepth': 'false',
                 'Grid/RangeMax': '5.0',
