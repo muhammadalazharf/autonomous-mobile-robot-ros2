@@ -59,11 +59,12 @@ def generate_launch_description():
         'database_path', default_value='~/.ros/rtabmap.db',
         description='Path ke file .db RTAB-Map')
 
-    # delete_db_on_start: tidak di-wire sebagai arg karena rtabmap ROS 2
-    # butuh conditional logic yang kompleks. Untuk fresh mapping, delete manual:
-    #   rm ~/.ros/rtabmap.db
-    # ATAU ganti database_path ke file baru:
-    #   database_path:=~/maps/lab_vio_NEW.db
+    # INTROSPEKSI 8-Juni: untuk FRESH mapping, jalankan helper script
+    # yang menghapus db lama secara eksplisit (lebih aman dari --delete_db_on_start
+    # yang mudah disalahgunakan dan menghapus DB produksi):
+    #   bash scripts/fresh_mapping.sh
+    # Atau gunakan database_path baru:
+    #   database_path:=~/maps/lab_remap3_$(date +%Y%m%d).db
 
     # ---- Topic args: D455 double namespace (/camera/camera/...) ----
     rgb_topic_arg = DeclareLaunchArgument(
@@ -169,12 +170,24 @@ def generate_launch_description():
                 # MaxVariance: frame dengan pose uncertainty > nilai ini DIBUANG
                 # FIX AUDIT: param ini harus di rgbd_odometry, BUKAN di rtabmap!
                 # rtabmap tidak mengenal param Odom/*, silently ignored di sana.
-                'Odom/MaxVariance': '0.01',    # tolak frame tidak confident
+                # INTROSPEKSI 8-Juni: 0.01 (std-dev 10cm) terlalu ketat untuk
+                # area textureless di D455 — VIO normal pun variance 0.02-0.05.
+                # Akibatnya hampir semua frame ditolak → reset terus → cloud kosong.
+                # 0.05 = balance: tolak frame BENAR-BENAR buruk, tidak paranoid.
+                'Odom/MaxVariance': '0.05',    # naik 0.01→0.05
                 # ResetCountdown: setelah N frame lost, auto-reset tracking
-                'Odom/ResetCountdown': '1',    # langsung reset saat lost
+                # INTROSPEKSI 8-Juni: 1 frame (~33ms) terlalu agresif — motion blur
+                # sesaat saat belok atau lampu silau langsung reset → trajectory pecah.
+                # 5 frame (~167ms) beri VIO kesempatan recover sebelum reset paksa.
+                'Odom/ResetCountdown': '5',    # naik 1→5
                 # ---- Visual tracking features ----
                 'Vis/MaxFeatures': '1000',     # fitur lebih banyak di-track
-                'Vis/MinInliers': '2',         # toleran area textureless
+                # INTROSPEKSI 8-Juni: MinInliers=2 = PENYEBAB UTAMA cloud bola fraktal.
+                # PnP butuh minimum 3 titik matematis, praktis ≥8 untuk noise robust.
+                # Default RTAB-Map=20. Set 2 artinya pose diterima walau hampir tidak
+                # ada korespondensi valid → pose random saat textureless → divergensi total.
+                # 8 = lebih toleran dari default tapi tetap statistically meaningful.
+                'Vis/MinInliers': '8',         # naik 2→8 — fix PnP reliability
                 'Vis/DepthAsMask': 'false',
                 'GFTT/MinDistance': '5',       # fitur lebih rapat
                 'GFTT/QualityLevel': '0.001',
@@ -267,11 +280,20 @@ def generate_launch_description():
                 # di grid map saat sesi mapping 7 Juni.
                 'Grid/NoiseFilteringRadius': '0.5',
                 'Grid/NoiseFilteringMinNeighbors': '5',
+                # ---- Place recognition (BoW) — terpisah dari Vis/* tracking ----
+                # INTROSPEKSI 8-Juni: tanpa Kp/* eksplisit, BoW vocabulary lemah
+                # → loop closure tidak pernah match → drift kumulatif (Gambar 2 ghosting).
+                # Kp/* mengontrol fitur untuk place recognition, terpisah dari pose tracking.
+                'Kp/MaxFeatures': '400',
+                'Kp/DetectorStrategy': '8',         # GFTT/BRIEF, konsisten dengan Vis/
                 # ---- Loop closure ----
                 # FIX AUDIT: comment salah sebelumnya — LoopThr lebih TINGGI = LEBIH SULIT accept.
                 # Turun ke 0.11 (default RTAB-Map) = lebih agresif loop closure = koreksi drift lebih baik.
                 'Rtabmap/LoopThr': '0.11',
-                'Rtabmap/DetectionRate': '1.0',
+                # INTROSPEKSI 8-Juni: 1.0 Hz = check loop closure sekali per detik.
+                # Robot @ 0.3 m/s lewat titik start dalam <1 detik → check belum jalan.
+                # 2.0 Hz = window deteksi 2x lebih lebar tanpa CPU overhead signifikan.
+                'Rtabmap/DetectionRate': '2.0',     # naik 1.0→2.0 Hz
                 'Rtabmap/TimeThr': '700',
                 'RGBD/NeighborLinkRefining': 'true',
                 'RGBD/ProximityBySpace': 'true',
@@ -297,8 +319,11 @@ def generate_launch_description():
                 # per sumbu = 1/4 pixel per frame). Lebih kecil = lebih padat
                 # tapi lebih berat CPU. 2 = balance bagus untuk NUC i7.
                 'cloud_decimation': 2,
-                # Batasi range untuk hilangkan noise depth jauh (D455 < 4m bagus)
-                'cloud_max_depth': 4.0,
+                # Batasi range untuk hilangkan noise depth jauh.
+                # INTROSPEKSI 8-Juni: 4.0m terlalu pendek untuk ruangan >4m → robot
+                # tidak "lihat" dinding seberang → tidak ada landmark jauh untuk
+                # place recognition. D455 valid hingga 6m, 5m = aman dari noise jauh.
+                'cloud_max_depth': 5.0,         # naik 4.0→5.0
                 'cloud_min_depth': 0.3,
                 # Voxel grid filter: dedupe titik dalam voxel 3cm
                 # Mencegah cloud "meledak" jumlahnya saat akumulasi panjang
@@ -315,7 +340,9 @@ def generate_launch_description():
             ('scan',       LaunchConfiguration('scan_topic')),
             ('odom',       '/rtabmap/odom'),
         ],
-        arguments=['--ros-args', '--log-level', 'INFO'],
+        arguments=[
+            '--ros-args', '--log-level', 'INFO',
+        ],
     )
 
     # =================================================================
