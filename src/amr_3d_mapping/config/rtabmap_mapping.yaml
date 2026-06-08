@@ -71,7 +71,11 @@ rtabmap:
     # ---- Visual features (loop closure + initial registration) ----
     Vis/FeatureType: "8"            # GFTT/BRIEF (light)
     Vis/MaxFeatures: "1000"
-    Vis/MinInliers: "10"
+    Vis/MinInliers: "8"             # 10→8: lab kecil low-texture, kurangi loop closure rejected
+
+    # ---- Loop closure BoW (place recognition) ----
+    Kp/MaxFeatures: "400"
+    Kp/DetectorStrategy: "8"        # GFTT/BRIEF (match Vis/FeatureType)
 
     # ---- Local map / occupancy grid ----
     Grid/FromDepth: "false"
@@ -86,7 +90,7 @@ rtabmap:
 
     # ---- Loop closure ----
     Rtabmap/LoopThr: "0.11"
-    Rtabmap/DetectionRate: "1.0"
+    Rtabmap/DetectionRate: "2.0"    # 1.0→2.0: wider loop closure detection window
     Rtabmap/TimeThr: "700"
     RGBD/NeighborLinkRefining: "true"
     RGBD/ProximityBySpace: "true"
@@ -115,7 +119,7 @@ rtabmap:
 
     # ---- 3D cloud density params ----
     cloud_decimation: 2               # subsample depth (1=full, 2=half per axis)
-    cloud_max_depth: 4.0              # buang depth > 4m (noisy di D455)
+    cloud_max_depth: 5.0              # 4.0→5.0: lihat dinding lebih jauh utk landmark
     cloud_min_depth: 0.3              # buang depth < 0.3m (sensor dead zone)
     cloud_voxel_size: 0.03            # voxel dedupe 3cm (padat tapi tidak explode)
     cloud_output_voxelized: true
@@ -148,14 +152,13 @@ rgbd_odometry:
     # MinDistance turun 10→7 (pixel jarak antar fitur, lebih rapat = lebih
     # banyak fitur kecil ter-detect saat area textureless).
     Vis/MaxFeatures: "1000"           # naik 800→1000: lebih banyak fitur di-track
-    Vis/MinInliers: "2"               # turun 3→2: lebih toleran area textureless
-    GFTT/MinDistance: "5"             # turun 7→5: fitur lebih rapat = lebih banyak
+    Vis/MinInliers: "8"               # 2→8: PnP butuh ≥8 inlier untuk noise robustness (introspeksi 8 Juni)
+    GFTT/MinDistance: "5"             # fitur lebih rapat = lebih banyak
     GFTT/QualityLevel: "0.001"
 
-    # Auto-recovery saat odometry lost (background merah)
-    # ResetCountdown=1: setelah 1 frame lost, langsung reset & coba tracking ulang
-    # tanpa perlu user manual reset via rtabmap_viz menu
-    Odom/ResetCountdown: "1"
+    # VIO stability params (introspeksi 8 Juni 2026)
+    Odom/MaxVariance: "0.05"          # batas variance odom — anti drift VIO divergence
+    Odom/ResetCountdown: "5"          # 1→5: tolerant motion blur, jangan reset di tiap blur frame
 
     # Tolak frame saat VIO tidak confident — KUNCI anti-scattered cloud
     # MaxVariance: kalau pose uncertainty > nilai ini, frame DIBUANG dari cloud
