@@ -101,6 +101,9 @@ rtabmap:
     RGBD/LinearUpdate: "0.05"
     RGBD/OptimizeFromGraphEnd: "false"
     RGBD/OptimizeMaxError: "5.0"    # 3.0→5.0: terima koreksi besar saat global loop trigger (fix double-room)
+    # Re-extract fitur khusus saat verifikasi loop closure candidate (rekomendasi
+    # tutorial resmi rtabmap_ros HandHeldMapping) → loop closure lebih mudah accept
+    RGBD/LoopClosureReextractFeatures: "true"
     # Proximity-based loop closure tuning (FIX: prevent permanent drift)
     # LocalRadius: radius pencarian node tetangga (meter) — robot bisa drift
     # sampai 5m dan masih ketemu loop closure ke titik lama.

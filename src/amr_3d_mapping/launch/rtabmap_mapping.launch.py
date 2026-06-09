@@ -291,6 +291,7 @@ def generate_launch_description():
                 # Turun ke 0.11 (default RTAB-Map) = lebih agresif loop closure = koreksi drift lebih baik.
                 'Rtabmap/LoopThr': '0.05',        # 0.08→0.05: fix double-room pattern (9 Juni 2026)
                 'RGBD/OptimizeMaxError': '5.0',   # 3.0→5.0: terima koreksi besar saat global loop trigger
+                'RGBD/LoopClosureReextractFeatures': 'true',  # tutorial resmi rtabmap_ros: loop closure lebih mudah accept
                 # INTROSPEKSI 8-Juni: 1.0 Hz = check loop closure sekali per detik.
                 # Robot @ 0.3 m/s lewat titik start dalam <1 detik → check belum jalan.
                 # 2.0 Hz = window deteksi 2x lebih lebar tanpa CPU overhead signifikan.
