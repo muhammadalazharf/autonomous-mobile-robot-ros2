@@ -43,7 +43,7 @@ Usage:
 import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -58,6 +58,13 @@ def generate_launch_description():
     database_path_arg = DeclareLaunchArgument(
         'database_path', default_value='~/.ros/rtabmap.db',
         description='Path ke file .db RTAB-Map')
+
+    # FRESH mapping default: hapus DB lama saat start supaya peta ruangan baru
+    # tidak ter-overlay peta ruangan lama (default true sesuai kebijakan TA).
+    # Set false hanya kalau sengaja mau continue mapping yang sudah ada.
+    delete_db_on_start_arg = DeclareLaunchArgument(
+        'delete_db_on_start', default_value='true',
+        description='Hapus DB lama saat mapping mulai (default: true = fresh mapping)')
 
     # INTROSPEKSI 8-Juni: untuk FRESH mapping, jalankan helper script
     # yang menghapus db lama secara eksplisit (lebih aman dari --delete_db_on_start
@@ -343,6 +350,13 @@ def generate_launch_description():
             ('odom',       '/rtabmap/odom'),
         ],
         arguments=[
+            # Fresh mapping default: hapus DB lama supaya peta ruangan baru
+            # tidak ter-overlay peta ruangan sebelumnya.
+            PythonExpression([
+                "'--delete_db_on_start' if '",
+                LaunchConfiguration('delete_db_on_start'),
+                "'.lower() == 'true' else ''"
+            ]),
             '--ros-args', '--log-level', 'INFO',
         ],
     )
@@ -376,6 +390,7 @@ def generate_launch_description():
     return LaunchDescription([
         use_sim_time_arg,
         database_path_arg,
+        delete_db_on_start_arg,
         rgb_topic_arg,
         depth_topic_arg,
         camera_info_topic_arg,
