@@ -51,7 +51,10 @@ rtabmap:
     Mem/SaveDepth16Format: "true"
     Mem/DepthAsMask: "false"
     Mem/RehearsalSimilarity: "0.45"
-    Mem/STMSize: "30"
+    # STMSize 30→10: fix double-room pattern (9 Juni 2026)
+    # Node lebih cepat pindah STM→WM = bisa lebih cepat jadi target
+    # global loop closure saat robot revisit di area sempit
+    Mem/STMSize: "10"
 
     # ---- Registration strategy ----
     # Strategy 2 = Vis+ICP: visual features untuk initial estimate,
@@ -89,7 +92,7 @@ rtabmap:
     Grid/MinGroundHeight: "-0.05"
 
     # ---- Loop closure ----
-    Rtabmap/LoopThr: "0.08"         # 0.11→0.08: terima hypothesis similarity lebih rendah (fix: semua rejected)
+    Rtabmap/LoopThr: "0.05"         # 0.08→0.05: lebih agresif (fix double-room, area sempit appearance mirip)
     Rtabmap/DetectionRate: "2.0"    # 1.0→2.0: wider loop closure detection window
     Rtabmap/TimeThr: "700"
     RGBD/NeighborLinkRefining: "true"
@@ -97,7 +100,7 @@ rtabmap:
     RGBD/AngularUpdate: "0.05"
     RGBD/LinearUpdate: "0.05"
     RGBD/OptimizeFromGraphEnd: "false"
-    RGBD/OptimizeMaxError: "3.0"    # baru: toleransi geometric error saat loop closure verification
+    RGBD/OptimizeMaxError: "5.0"    # 3.0→5.0: terima koreksi besar saat global loop trigger (fix double-room)
     # Proximity-based loop closure tuning (FIX: prevent permanent drift)
     # LocalRadius: radius pencarian node tetangga (meter) — robot bisa drift
     # sampai 5m dan masih ketemu loop closure ke titik lama.
