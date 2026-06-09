@@ -287,9 +287,10 @@ def generate_launch_description():
                 'Kp/MaxFeatures': '400',
                 'Kp/DetectorStrategy': '8',         # GFTT/BRIEF, konsisten dengan Vis/
                 # ---- Loop closure ----
-                # FIX AUDIT: comment salah sebelumnya — LoopThr lebih TINGGI = LEBIH SULIT accept.
+                # FIX AUDIT: LoopThr lebih TINGGI = LEBIH SULIT accept. Turun 0.11→0.08 (fix: semua rejected)
                 # Turun ke 0.11 (default RTAB-Map) = lebih agresif loop closure = koreksi drift lebih baik.
-                'Rtabmap/LoopThr': '0.11',
+                'Rtabmap/LoopThr': '0.08',
+                'RGBD/OptimizeMaxError': '3.0',   # toleransi geometric error loop closure verification
                 # INTROSPEKSI 8-Juni: 1.0 Hz = check loop closure sekali per detik.
                 # Robot @ 0.3 m/s lewat titik start dalam <1 detik → check belum jalan.
                 # 2.0 Hz = window deteksi 2x lebih lebar tanpa CPU overhead signifikan.

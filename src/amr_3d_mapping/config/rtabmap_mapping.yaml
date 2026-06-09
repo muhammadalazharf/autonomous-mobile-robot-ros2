@@ -89,7 +89,7 @@ rtabmap:
     Grid/MinGroundHeight: "-0.05"
 
     # ---- Loop closure ----
-    Rtabmap/LoopThr: "0.11"
+    Rtabmap/LoopThr: "0.08"         # 0.11→0.08: terima hypothesis similarity lebih rendah (fix: semua rejected)
     Rtabmap/DetectionRate: "2.0"    # 1.0→2.0: wider loop closure detection window
     Rtabmap/TimeThr: "700"
     RGBD/NeighborLinkRefining: "true"
@@ -97,6 +97,7 @@ rtabmap:
     RGBD/AngularUpdate: "0.05"
     RGBD/LinearUpdate: "0.05"
     RGBD/OptimizeFromGraphEnd: "false"
+    RGBD/OptimizeMaxError: "3.0"    # baru: toleransi geometric error saat loop closure verification
     # Proximity-based loop closure tuning (FIX: prevent permanent drift)
     # LocalRadius: radius pencarian node tetangga (meter) — robot bisa drift
     # sampai 5m dan masih ketemu loop closure ke titik lama.
