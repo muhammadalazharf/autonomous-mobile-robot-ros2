@@ -21,6 +21,8 @@ rtabmap:
     approx_sync_max_interval: 0.05
     queue_size: 30
     sync_queue_size: 30
+    topic_queue_size: 30
+    qos: 1                             # SensorDataQoS (BestEffort) — wajib untuk /scan dari rplidar
 
     tf_delay: 0.05
     tf_tolerance: 0.1

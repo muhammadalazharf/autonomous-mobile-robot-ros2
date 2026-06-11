@@ -6,3 +6,13 @@ __pycache__/
 *.db
 *.pgm
 *.yaml.bak
+build/
+install/
+log/
+*.db
+*.db-journal
+build/
+install/
+log/
+*.db
+*.db-journal
