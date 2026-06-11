@@ -47,7 +47,7 @@ def generate_launch_description():
     config_path = PathJoinSubstitution([
         FindPackageShare('amr_3d_mapping'),
         'config',
-        'rtabmap_mapping.yaml'
+        'rtabmap_localization.yaml'
     ])
 
     # =================================================================
@@ -107,10 +107,11 @@ def generate_launch_description():
                 'publish_tf': True,     
                 'Odom/Strategy': '0',          
                 'Odom/GuessMotion': 'true',    
-                'Odom/MaxVariance': '0.01',    # Filter strict VIO
-                'Odom/ResetCountdown': '1',    
-                'Vis/MaxFeatures': '1000',     
-                'Vis/MinInliers': '2',         
+                'Odom/MaxVariance': '0.05',
+                'Odom/ResetCountdown': '5',
+                'Vis/MaxFeatures': '1000',
+                'Vis/MinInliers': '8',
+                'Vis/DepthAsMask': 'false',
                 'GFTT/MinDistance': '5',       
                 'GFTT/QualityLevel': '0.001',
                 'OdomF2M/MaxSize': '1000',
@@ -138,6 +139,7 @@ def generate_launch_description():
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
                 'database_path': LaunchConfiguration('database_path'),
                 'subscribe_depth': False,
+                'subscribe_rgb': False,
                 'subscribe_rgbd': True,
                 'subscribe_scan': True,
                 'subscribe_odom_info': False,
@@ -145,6 +147,8 @@ def generate_launch_description():
                 'approx_sync_max_interval': 0.05,
                 'queue_size': 30,
                 'sync_queue_size': 30,
+                'topic_queue_size': 30,
+                'qos': 1,
                 'frame_id': 'base_link',
                 'map_frame_id': 'map',
                 'odom_frame_id': 'odom',

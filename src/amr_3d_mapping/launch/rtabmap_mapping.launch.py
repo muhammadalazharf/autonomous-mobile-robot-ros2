@@ -231,10 +231,16 @@ def generate_launch_description():
                 'subscribe_rgbd': True,
                 'subscribe_scan': True,
                 'subscribe_odom_info': False,
+                'subscribe_rgb': False,
                 'approx_sync': True,
                 'approx_sync_max_interval': 0.05,
                 'queue_size': 30,
                 'sync_queue_size': 30,
+                'topic_queue_size': 30,
+                # QoS 1 = SensorDataQoS (BestEffort). WAJIB karena rplidar
+                # publishes /scan dengan BestEffort — subscriber Reliable
+                # (default qos=0) TIDAK AKAN menerima data sama sekali.
+                'qos': 1,
                 # ---- Frames ----
                 'frame_id': 'base_link',
                 'map_frame_id': 'map',
