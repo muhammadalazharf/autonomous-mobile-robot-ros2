@@ -11,3 +11,8 @@ install/
 log/
 *.db
 *.db-journal
+build/
+install/
+log/
+*.db
+*.db-journal
