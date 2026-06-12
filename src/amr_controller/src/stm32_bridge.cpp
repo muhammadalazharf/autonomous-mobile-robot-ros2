@@ -1,11 +1,13 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
+#include "geometry_msgs/msg/twist.hpp"
 #include "std_msgs/msg/int32.hpp"
 #include <fcntl.h>
 #include <termios.h>
 #include <unistd.h>
 #include <cstring>
 #include <cstdio>
+#include <cmath>
 #include <string>
 #include <thread>
 
@@ -16,34 +18,37 @@
 //  Author        : Muhammad Al Azhar Faradis
 //  Institution   : Automation Engineering, ITS Surabaya
 //
-//  Features:
-//  - Publishes /joy commands to STM32 via USB Serial
-//  - Reads encoder feedback from STM32 (E:{delta}\n)
-//  - Publishes encoder data to /encoder topic
-//  - Uses stable port /dev/serial/by-id/ to avoid port changes
+//  Dual-mode:
+//    1. MANUAL   : Joystick PS4/PS5 (R1 deadman) → PWM + steering
+//    2. AUTONOMOUS: Nav2 cmd_vel → Ackermann kinematik → PWM + steering
+//    Joystick (R1 ditekan) SELALU menang atas autonomous.
+//
+//  Serial protocol ke STM32:
+//    TX: "V:{pwm},S:{sudut}\n"   (pwm bisa negatif = mundur)
+//    RX: "E:{delta}\n"           (encoder delta ticks)
+//
+//  PENTING — Konvensi tanda (setelah kabel motor ditukar):
+//    V positif  = robot maju fisik   (DIR=FORWARD di firmware STM32)
+//    V negatif  = robot mundur fisik  (DIR=REVERSE di firmware STM32)
+//    Stick maju = axes[1] = +1.0 → V positif → maju ✓
+//    Nav2 linear.x > 0              → V positif → maju ✓
 // ============================================================
 
-// --- IMPORTANT: Change this to your STM32 serial ID ---
-// Run: ls -l /dev/serial/by-id/
-// Then copy the full name of the STM32 Virtual ComPort entry
 #define SERIAL_PORT  "/dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_206833894152-if00"
 #define BAUD_RATE    B115200
-#define MAX_PWM      4000             // Max PWM value for traction motors
+#define MAX_PWM      4000
 #define MAX_STEER    45
-#define STEER_TRIM   -5               // Max steering angle in degrees
-#define DEADMAN_BTN  5                // R1 button on PS4/PS5 DualShock Bluetooth joystick
-#define AXIS_VEL     1                // Left analog stick (up/down) -> velocity
-#define AXIS_STEER   3                // Right analog stick (left/right) -> steering
-// NOTE: Joystick is PS4/PS5 DualShock via Bluetooth (MAC 8C:41:F2:D6:9D:7F).
-// Verified Day 2: detected as "Wireless Controller" by Linux kernel.
-// Button/axis mapping is compatible with PS4 BT default layout.
+#define STEER_TRIM   -5
+#define DEADMAN_BTN  5                // R1 button on PS4/PS5 DualShock
+#define AXIS_VEL     1                // Left analog stick up/down
+#define AXIS_STEER   3                // Right analog stick left/right
+#define WHEELBASE    0.5f             // meter, jarak sumbu roda depan-belakang
 
 class STM32Bridge : public rclcpp::Node
 {
 public:
   STM32Bridge() : Node("stm32_bridge"), serial_fd_(-1), running_(true)
   {
-    // Open serial port to STM32
     serial_fd_ = open(SERIAL_PORT, O_RDWR | O_NOCTTY | O_SYNC);
     if (serial_fd_ < 0) {
       RCLCPP_ERROR(this->get_logger(),
@@ -55,15 +60,25 @@ public:
       RCLCPP_INFO(this->get_logger(), "[OK] STM32 connected!");
     }
 
-    // Subscribe to joystick topic
+    this->declare_parameter("autonomous_enabled", false);
+    this->declare_parameter("max_speed_mps", 1.0);
+    this->declare_parameter("cmd_vel_timeout_ms", 500);
+
     joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
       "/joy", 10,
       std::bind(&STM32Bridge::joy_callback, this, std::placeholders::_1));
 
-    // Publisher: encoder feedback -> /encoder topic
+    cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
+      "/cmd_vel", 10,
+      std::bind(&STM32Bridge::cmd_vel_callback, this, std::placeholders::_1));
+
+    watchdog_timer_ = this->create_wall_timer(
+      std::chrono::milliseconds(100),
+      std::bind(&STM32Bridge::watchdog_check, this));
+    last_cmd_vel_time_ = this->now();
+
     encoder_pub_ = this->create_publisher<std_msgs::msg::Int32>("/encoder", 10);
 
-    // Start encoder reader thread (runs in parallel)
     if (serial_fd_ >= 0) {
       read_thread_ = std::thread(&STM32Bridge::read_encoder_loop, this);
     }
@@ -78,15 +93,12 @@ public:
 
   ~STM32Bridge()
   {
-    // Stop encoder reader thread
     running_ = false;
     if (read_thread_.joinable()) {
       read_thread_.join();
     }
-
-    // Stop motors and close serial port
     if (serial_fd_ >= 0) {
-      send_command(0, 0);
+      send_command(0, STEER_TRIM);
       close(serial_fd_);
       RCLCPP_INFO(this->get_logger(), "[OK] Motors stopped. Serial port closed.");
     }
@@ -94,13 +106,18 @@ public:
 
 private:
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
+  rclcpp::TimerBase::SharedPtr watchdog_timer_;
   rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr encoder_pub_;
+  rclcpp::Time last_cmd_vel_time_;
   std::thread read_thread_;
   int serial_fd_;
   bool running_;
+  bool manual_override_ = false;
+  bool autonomous_active_ = false;
 
   // --------------------------------------------------
-  // Joystick callback: reads /joy and sends to STM32
+  // MANUAL: Joystick callback
   // --------------------------------------------------
   void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
   {
@@ -110,11 +127,14 @@ private:
       return;
     }
 
-    // Deadman switch: R1 must be held for robot to move (safety)
     bool deadman = (msg->buttons.size() > DEADMAN_BTN &&
                     msg->buttons[DEADMAN_BTN] == 1);
+    manual_override_ = deadman;
+
     if (!deadman) {
-      send_command(0, 0);
+      if (!autonomous_active_) {
+        send_command(0, STEER_TRIM);
+      }
       return;
     }
 
@@ -123,17 +143,74 @@ private:
     float steer_raw = (msg->axes.size() > AXIS_STEER)
                       ? msg->axes[AXIS_STEER] : 0.0f;
 
-    // Negate velocity: analog up (+1.0) = forward on hardware
-    int velocity = static_cast<int>(vel_raw   * -MAX_PWM);
+    // TANPA negasi: stick maju (+1.0) = V positif = robot maju
+    // (negasi lama dihapus karena kabel motor sudah ditukar fisik)
+    int velocity = static_cast<int>(vel_raw * MAX_PWM);
 
-    // Negate steering: analog right (+1.0) = turn right on hardware
+    // Negasi steering: analog kanan (+1.0) = belok kanan = sudut negatif
     int steering = static_cast<int>(steer_raw * -MAX_STEER) + STEER_TRIM;
 
-    // Clamp values to valid range
     velocity = std::max(-MAX_PWM,  std::min(MAX_PWM,  velocity));
     steering = std::max(-MAX_STEER, std::min(MAX_STEER, steering));
 
     send_command(velocity, steering);
+  }
+
+  // --------------------------------------------------
+  // AUTONOMOUS: cmd_vel callback (Nav2 / teleop_twist)
+  // Konversi Twist → (PWM, steering) via Ackermann:
+  //   steer = atan(WHEELBASE * angular.z / linear.x)
+  // Aktif hanya jika autonomous_enabled=true DAN R1 tidak ditekan.
+  // --------------------------------------------------
+  void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
+  {
+    if (serial_fd_ < 0) return;
+
+    bool enabled = this->get_parameter("autonomous_enabled").as_bool();
+    if (!enabled || manual_override_) {
+      autonomous_active_ = false;
+      return;
+    }
+
+    last_cmd_vel_time_ = this->now();
+    autonomous_active_ = true;
+
+    double v = msg->linear.x;
+    double w = msg->angular.z;
+    double max_speed = this->get_parameter("max_speed_mps").as_double();
+    if (max_speed < 0.1) max_speed = 0.1;
+
+    int velocity = static_cast<int>((v / max_speed) * MAX_PWM);
+
+    int steering = STEER_TRIM;
+    if (std::fabs(v) > 0.05) {
+      double steer_rad = std::atan(WHEELBASE * w / v);
+      steering = static_cast<int>(steer_rad * 180.0 / M_PI) + STEER_TRIM;
+    }
+
+    velocity = std::max(-MAX_PWM,  std::min(MAX_PWM,  velocity));
+    steering = std::max(-MAX_STEER, std::min(MAX_STEER, steering));
+
+    send_command(velocity, steering);
+  }
+
+  // --------------------------------------------------
+  // Watchdog: cmd_vel timeout → stop motor
+  // --------------------------------------------------
+  void watchdog_check()
+  {
+    if (!autonomous_active_ || manual_override_) return;
+
+    int timeout_ms = this->get_parameter("cmd_vel_timeout_ms").as_int();
+    auto elapsed_ms =
+      (this->now() - last_cmd_vel_time_).nanoseconds() / 1000000;
+
+    if (elapsed_ms > timeout_ms) {
+      autonomous_active_ = false;
+      send_command(0, STEER_TRIM);
+      RCLCPP_WARN(this->get_logger(),
+        "[WATCHDOG] cmd_vel timeout (%ld ms) — motor stopped", elapsed_ms);
+    }
   }
 
   // --------------------------------------------------
@@ -148,14 +225,13 @@ private:
     if (n < 0) {
       RCLCPP_ERROR(this->get_logger(), "[ERROR] Failed to write to serial port!");
     } else {
-      RCLCPP_INFO(this->get_logger(), "[TX] %s", buffer);
+      RCLCPP_DEBUG(this->get_logger(), "[TX] %s", buffer);
     }
   }
 
   // --------------------------------------------------
   // Encoder reader thread
   // Reads "E:{delta}\n" from STM32 continuously
-  // Publishes delta to /encoder topic
   // --------------------------------------------------
   void read_encoder_loop()
   {
@@ -171,7 +247,6 @@ private:
         line[line_pos] = '\0';
         line_pos = 0;
 
-        // Parse encoder format: "E:{delta}"
         int delta = 0;
         if (sscanf(line, "E:%d", &delta) == 1) {
           auto msg = std_msgs::msg::Int32();
@@ -181,12 +256,13 @@ private:
         }
       } else {
         if (line_pos < 127) line[line_pos++] = c;
+        else line_pos = 0;
       }
     }
   }
 
   // --------------------------------------------------
-  // Configure serial port settings
+  // Configure serial port
   // --------------------------------------------------
   void configure_serial(int fd)
   {
@@ -195,12 +271,12 @@ private:
     tcgetattr(fd, &tty);
     cfsetospeed(&tty, BAUD_RATE);
     cfsetispeed(&tty, BAUD_RATE);
-    tty.c_cflag  = (tty.c_cflag & ~CSIZE) | CS8;  // 8-bit characters
-    tty.c_cflag |= (CLOCAL | CREAD);               // Enable receiver
-    tty.c_cflag &= ~(PARENB | PARODD | CSTOPB | CRTSCTS); // No parity, no flow control
-    tty.c_iflag &= ~IGNBRK;
-    tty.c_lflag  = 0;   // No echo, no canonical mode
-    tty.c_oflag  = 0;   // No output processing
+    tty.c_cflag  = (tty.c_cflag & ~CSIZE) | CS8;
+    tty.c_cflag |= (CLOCAL | CREAD);
+    tty.c_cflag &= ~(PARENB | PARODD | CSTOPB | CRTSCTS);
+    tty.c_iflag &= ~(IGNBRK | IXON | IXOFF | IXANY | ICRNL | INLCR);
+    tty.c_lflag  = 0;
+    tty.c_oflag  = 0;
     tty.c_cc[VMIN]  = 0;
     tty.c_cc[VTIME] = 5;
     tcsetattr(fd, TCSANOW, &tty);
