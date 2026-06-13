@@ -68,16 +68,40 @@ Dua tempat integrasi numerik bekerja:
    - Trapesium: A ≈ ½ · Δθ/2 · [f₀ + fₙ + 2Σfᵢ],  fᵢ = rᵢ²
    - Simpson 1/3: A ≈ ½ · Δθ/3 · [f₀ + fₘ + 4Σ(ganjil) + 2Σ(genap)]
 
-2. **Metode Euler** — integrasi kecepatan menjadi posisi (dead-reckoning) pada
-   `odometry_publisher.py`:
+   > **Catatan kejujuran:** Trapesium/Simpson di atas **bukan node ROS 2 yang berjalan
+   > di robot** — tidak ada file produksi yang menghitung luas sektor ini. Ini adalah
+   > **analisis numerik yang dijalankan terhadap data `/scan` nyata** (rekaman
+   > `sensor_msgs/LaserScan` dari RPLIDAR C1, 128 berkas pertama) sebagai jawaban
+   > soal UAS: menerapkan metode integrasi numerik pada data project sendiri.
+   > Jika ditanya "kodenya di file mana?", jawabannya: perhitungan manual/skrip
+   > analisis dari data scan, bukan node produksi.
 
-   x(t) = x₀ + ∫ v·cos θ dt   →   xₖ₊₁ = xₖ + vₖ·cos θₖ·Δt
+2. **Metode Midpoint (RK2)** — integrasi kecepatan menjadi posisi (dead-reckoning) pada
+   `odometry_publisher.py`, baris 205-208:
+
+   ```python
+   self.x += delta_dist * math.cos(self.theta + delta_theta / 2.0)
+   self.y += delta_dist * math.sin(self.theta + delta_theta / 2.0)
+   self.theta += delta_theta
+   ```
+
+   Posisi (x, y) diintegrasi dengan **metode titik-tengah (midpoint)**: arah gerak
+   dievaluasi pada sudut rata-rata `θ + Δθ/2` (bukan `θ` di awal interval seperti
+   Euler murni), sehingga galat per langkah O(h²) — lebih akurat dari Euler O(h)
+   tanpa perlu kompleksitas RK4. Sudut `θ` sendiri tetap diakumulasi dengan Euler
+   (`θ += Δθ`).
+
+   > Catatan kecil: komentar pada baris kode tersebut menulis "Euler forward" —
+   > tapi rumusnya secara matematis adalah midpoint. Ini contoh nyata bahwa
+   > komentar kode bisa menyesatkan; identifikasi metode harus dari **rumus**,
+   > bukan dari nama yang disebut programmer.
 
 **(b) Bagian project tempat metode bekerja**
 
-- Trapesium/Simpson: analisis scan LiDAR (`/scan`) → estimasi luas/keliling ruangan,
-  dipakai untuk verifikasi skala peta hasil SLAM.
-- Euler: node `odometry_publisher.py`, tiap pesan encoder masuk → akumulasi posisi.
+- Trapesium/Simpson: analisis numerik terhadap data scan LiDAR nyata (`/scan`) →
+  estimasi luas sektor ruangan, sebagai jawaban soal UAS (lihat catatan kejujuran
+  di atas).
+- Midpoint: node `odometry_publisher.py`, tiap pesan encoder masuk → akumulasi posisi.
 
 **(c) Pemicunya**
 
@@ -143,7 +167,7 @@ dari data diskret, turunan didekati dengan beda-hingga.
 
 - [x] **Akuisisi data** — kalibrasi/konversi sensor (regresi), estimasi galat alat
 - [x] **Preprocessing** — smoothing / resampling / isi data hilang (interpolasi)
-- [x] **Pemodelan / komputasi inti** — solusi ODE (Euler), identifikasi sistem
+- [x] **Pemodelan / komputasi inti** — solusi ODE (Euler/midpoint), identifikasi sistem
 - [x] **Analisis turunan & akumulasi** — rate (diferensiasi) / total (integrasi)
 - [x] **Validasi & evaluasi** — RMSE, bandingkan vs solusi eksak / antar-metode
 
@@ -164,23 +188,27 @@ Sensor mentah masuk: LiDAR (`/scan`, 720 berkas @ 10 Hz), encoder (tick), IMU.
   antar-sensor dengan mencocokkan/menyisipkan sampel pada timestamp bersama —
   prinsipnya interpolasi data terhadap waktu.
 - **Isi data hilang (interpolasi):** berkas LiDAR yang dropout (range/intensity = 0)
-  diisi dengan interpolasi linear/spline dari berkas tetangga yang valid.
+  *secara prinsip* dapat diisi dengan interpolasi linear/spline dari berkas
+  tetangga yang valid — metode yang relevan untuk gap ini. (Belum ada node
+  produksi yang menjalankan interpolasi ini; framing-nya adalah "metode yang
+  cocok diterapkan", bukan "sudah diimplementasikan".)
 
 ### Fase 3 — PEMODELAN / KOMPUTASI INTI
-- **Solusi ODE (Euler):** gerak robot dimodelkan persamaan diferensial kinematik
-  Ackermann:
+- **Solusi ODE (Euler + Midpoint):** gerak robot dimodelkan persamaan diferensial
+  kinematik Ackermann:
 
   dx/dt = v·cos θ ; dy/dt = v·sin θ ; dθ/dt = (v/L)·tan φ   (L = wheelbase = 0,5 m)
 
-  Diselesaikan numerik tiap langkah waktu dengan metode Euler → lintasan robot.
+  Diselesaikan numerik tiap langkah waktu: `θ` dengan Euler (`θ += Δθ`), `x,y`
+  dengan midpoint (`θ + Δθ/2`) → lintasan robot. Lihat Soal 1 Topik 1.
 - **Identifikasi sistem / SLAM:** RTAB-Map menggabung VIO + LiDAR membangun peta
   (di balik layar: sistem persamaan linear & optimasi pose-graph).
 
 ### Fase 4 — ANALISIS TURUNAN & AKUMULASI
 - **Diferensiasi (rate):** kecepatan v = Δs/Δt (beda maju); deteksi tepi dr/dθ (beda
   pusat). Lihat Soal 1 Topik 2.
-- **Integrasi (total):** posisi = ∫v dt (Euler); luas ruangan = ½∫r²dθ
-  (Trapesium/Simpson). Lihat Soal 1 Topik 1.
+- **Integrasi (total):** posisi = ∫v dt (midpoint, di `odometry_publisher.py`);
+  luas ruangan = ½∫r²dθ (Trapesium/Simpson, analisis data nyata). Lihat Soal 1 Topik 1.
 
 ### Fase 5 — VALIDASI & EVALUASI
 - **Bandingkan antar-metode:** luas sektor Trapesium (0,80599 m²) vs Simpson
@@ -210,7 +238,10 @@ f′(xᵢ) ≈ [f(xᵢ₊₁) − f(xᵢ₋₁)] / (2h),  galat O(h²)
 f′(xᵢ) ≈ [f(xᵢ₊₁) − f(xᵢ)] / h,  galat O(h)
 
 **Metode Euler (solusi ODE y′ = f(t,y)):**
-yₖ₊₁ = yₖ + h·f(tₖ, yₖ)
+yₖ₊₁ = yₖ + h·f(tₖ, yₖ),  galat O(h)
+
+**Metode Midpoint / RK2 (dipakai di `odometry_publisher.py` untuk x,y):**
+yₖ₊₁ = yₖ + h·f(tₖ + h/2, yₖ),  galat O(h²)
 
 **Luas polar (basis integrasi LiDAR):**
 A = ½ ∫(θmin→θmax) r(θ)² dθ
