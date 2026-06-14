@@ -153,13 +153,39 @@ Sensor hanya memberi besaran "posisi" (jarak r, jumlah tick), bukan "laju". Untu
 mendapatkan laju perubahan (tepi = perubahan jarak; kecepatan = perubahan posisi)
 dari data diskret, turunan didekati dengan beda-hingga.
 
-**Bukti angka (dari data scan nyata):**
+**Bukti angka A — deteksi tepi LiDAR (beda pusat dr/dθ):**
 
 | Besaran | Nilai |
 |---|---|
 | \|dr/dθ\| maksimum | 3.801 m/rad pada berkas ke-57 |
 | Transisi jarak di titik itu | 1.469 m → 1.403 m |
 | Interpretasi | tepi objek / sudut dinding terdeteksi |
+
+**Bukti angka B — perbandingan orde galat (data posisi-vs-waktu nyata):**
+
+Rekaman `/odom` saat robot berjalan lurus konstan (file `odom_20260614_213654.csv`,
+1009 sampel @ 50 Hz, segmen gerak mulus t = 9–15.8 s, v ≈ 1,78 m/s). Kecepatan
+diestimasi dari posisi `x(t)` dengan tiga skema beda-hingga, lalu galatnya diukur
+terhadap kecepatan referensi (slope regresi linear seluruh segmen, 133 titik uji):
+
+| Skema | Rumus | Orde galat | RMSE galat |
+|---|---|---|---|
+| Beda maju (forward) | (xₖ₊₁ − xₖ)/Δt | O(h) | 399,0 mm/s |
+| Beda mundur (backward) | (xₖ − xₖ₋₁)/Δt | O(h) | 383,3 mm/s |
+| **Beda pusat (central)** | (xₖ₊₁ − xₖ₋₁)/(2Δt) | **O(h²)** | **63,3 mm/s** |
+
+**Beda pusat 6,3× lebih akurat** dari beda maju/mundur — verifikasi empiris langsung
+bahwa galat O(h²) jauh lebih kecil dari O(h). Ini melengkapi bukti dr/dθ LiDAR:
+metode diferensiasi yang sama (beda pusat) terbukti unggul baik pada domain sudut
+(LiDAR) maupun domain waktu (odometry).
+
+> **Catatan rekayasa (debug nyata):** data `x(t)` mentah ternyata berbentuk **tangga
+> (staircase)** — posisi diam 2–3 sampel lalu melompat ~89 mm. Penyebabnya `/odom`
+> dipublikasi 50 Hz sedangkan encoder STM32 hanya update ~17 Hz, sehingga posisi
+> ditahan konstan di antara update encoder. Beda maju/mundur sangat sensitif terhadap
+> artefak ini (menghasilkan kecepatan yang melonjak 0 → 2,25 m/s → 0 secara bergantian),
+> sedangkan beda pusat meratakannya. Untuk analisis di atas, data di-*dedup* ke titik
+> update encoder asli (~17 Hz) lebih dulu. Lihat Lampiran "Analisis Galat Sampling".
 
 ---
 
@@ -190,10 +216,27 @@ Sensor mentah masuk: LiDAR (`/scan`, 720 berkas @ 10 Hz), encoder (tick), IMU.
   antar-sensor dengan mencocokkan/menyisipkan sampel pada timestamp bersama —
   prinsipnya interpolasi data terhadap waktu.
 - **Isi data hilang (interpolasi):** berkas LiDAR yang dropout (range/intensity = 0)
-  *secara prinsip* dapat diisi dengan interpolasi linear/spline dari berkas
-  tetangga yang valid — metode yang relevan untuk gap ini. (Belum ada node
-  produksi yang menjalankan interpolasi ini; framing-nya adalah "metode yang
-  cocok diterapkan", bukan "sudah diimplementasikan".)
+  dapat diisi dengan interpolasi linear/spline dari berkas tetangga yang valid.
+  (Pada LiDAR ini belum ada node produksi yang menjalankannya; framing-nya "metode
+  yang cocok diterapkan".)
+- **Interpolasi posisi terhadap waktu (BUKTI ANGKA, hold-out validation):** untuk
+  membuktikan metode interpolasi secara kuantitatif, dilakukan uji *hold-out* pada
+  data posisi `/odom` nyata (file `odom_20260614_213654.csv`, segmen gerak mulus).
+  Caranya: sebagian titik dijadikan **grid dasar**, titik di antaranya **disembunyikan**,
+  lalu nilainya diprediksi dengan dua metode dan dibandingkan terhadap nilai asli.
+
+  | Jarak grid dasar | Interpolasi linear (RMSE) | Cubic spline (RMSE) |
+  |---|---|---|
+  | ~6 Hz (~160 ms) | 12,1 mm | 12,7 mm |
+  | ~4 Hz (~260 ms) | 11,5 mm | 11,8 mm |
+
+  **Kesimpulan pemilihan metode:** untuk gerak lurus berkecepatan ~konstan, lintasan
+  `x(t)` hampir linear sehingga **interpolasi linear sudah cukup** (RMSE ~11–12 mm) dan
+  **cubic spline tidak memberi keuntungan** — bahkan sedikit lebih buruk karena spline
+  cenderung *overshoot* pada data ber-derau/jitter (gejala mirip osilasi Runge). Ini
+  pelajaran inti metode numerik: **metode harus dipilih sesuai sifat data**, bukan
+  selalu memakai yang paling kompleks. Spline baru unggul bila data punya kelengkungan
+  (akselerasi) nyata; linear unggul untuk segmen linear + lebih murah komputasi.
 
 ### Fase 3 — PEMODELAN / KOMPUTASI INTI
 - **Solusi ODE (Euler + Midpoint):** gerak robot dimodelkan persamaan diferensial
@@ -274,6 +317,15 @@ yₖ₊₁ = yₖ + h·f(tₖ, yₖ),  galat O(h)
 **Metode Midpoint / RK2 (dipakai di `odometry_publisher.py` untuk x,y):**
 yₖ₊₁ = yₖ + h·f(tₖ + h/2, yₖ),  galat O(h²)
 
+**Interpolasi linear (antara dua titik (x₀,y₀) dan (x₁,y₁)):**
+y(x) = y₀ + (y₁ − y₀)·(x − x₀)/(x₁ − x₀),  galat O(h²)
+
+**Cubic spline natural (per ruas [xᵢ, xᵢ₊₁]):**
+Sᵢ(x) = aᵢ + bᵢ(x−xᵢ) + cᵢ(x−xᵢ)² + dᵢ(x−xᵢ)³
+dengan syarat kontinu C² (turunan 1 & 2 menyambung di tiap simpul) dan
+turunan kedua = 0 di kedua ujung (natural). Koefisien c diperoleh dari
+sistem tridiagonal → diselesaikan dengan eliminasi Thomas.
+
 **Luas polar (basis integrasi LiDAR):**
 A = ½ ∫(θmin→θmax) r(θ)² dθ
 
@@ -306,7 +358,81 @@ A = ½ ∫(θmin→θmax) r(θ)² dθ
 | \|dr/dθ\| maksimum (tepi) | 3,801 m/rad @ berkas 57 |
 | RMSE fit dinding (regresi) | 2,9 mm |
 
+## Hasil hitung (data posisi-vs-waktu nyata, `odom_20260614_213654.csv`)
+
+| Analisis | Hasil |
+|---|---|
+| Diferensiasi — beda maju (O(h)) RMSE galat-v | 399,0 mm/s |
+| Diferensiasi — beda mundur (O(h)) RMSE galat-v | 383,3 mm/s |
+| Diferensiasi — beda pusat (O(h²)) RMSE galat-v | 63,3 mm/s |
+| Rasio keunggulan central vs forward | 6,3× |
+| Interpolasi — linear (hold-out, grid ~4 Hz) RMSE | 11,5 mm |
+| Interpolasi — cubic spline (hold-out, grid ~4 Hz) RMSE | 11,8 mm |
+| Galat regresi odom-vs-real (R²) | 0,998 |
+| Rasio kalibrasi odom/real (skala salah) | 2,55× |
+
 ---
 
-*Sumber data: pesan `sensor_msgs/LaserScan` dari RPLIDAR C1 (data_lidar_mentah.txt)
-dan parameter node `odometry_publisher.py` repository AMR.*
+# LAMPIRAN — LOGIKA PEMILIHAN METODE & ANALISIS DEBUG
+
+Bagian ini menjelaskan **mengapa** tiap metode numerik dipilih, dikaitkan langsung ke
+arsitektur AMR (ROS 2 Humble: `odometry_publisher.py`, `stm32_bridge`, RPLIDAR C1,
+RealSense D455), berikut analisis debug yang muncul dari data nyata.
+
+## 1. Mengapa Midpoint (bukan Euler murni) untuk integrasi posisi
+
+Model kinematik Ackermann adalah ODE non-linear: arah gerak `θ` berubah selama langkah
+waktu. Euler murni mengevaluasi arah di **awal** interval (`cos θ`), sehingga pada saat
+robot membelok ia menyimpang ke sisi luar/dalam kurva (galat O(h), terakumulasi sebagai
+*drift*). Midpoint mengevaluasi arah di **tengah** interval (`cos(θ + Δθ/2)`), menangkap
+rotasi yang terjadi selama langkah → galat O(h²). Sudut `θ` sendiri tetap Euler karena
+`dθ/dt` praktis konstan dalam satu langkah (input setir tetap), jadi midpoint untuk `θ`
+tak memberi keuntungan berarti. **Logika: pakai metode orde lebih tinggi hanya di tempat
+yang kelengkungannya signifikan (x,y), hemat komputasi di tempat yang linear (θ).**
+
+## 2. Mengapa beda pusat (central) untuk turunan
+
+Beda maju/mundur hanya memakai satu sisi titik → galat O(h). Beda pusat memakai dua sisi
+simetris → suku galat orde-h saling meniadakan, tersisa O(h²). Bukti empiris di data AMR:
+central **6,3× lebih akurat**. **Kaitan arsitektur:** untuk `dr/dθ` LiDAR (deteksi tepi
+ruangan) dan estimasi kecepatan dari `/odom`, central difference memberi sinyal yang jauh
+lebih bersih — penting karena turunan **memperkuat derau** (high-pass), jadi pemilihan
+skema yang meredam derau sangat berpengaruh.
+
+## 3. Mengapa interpolasi linear cukup (bukan spline)
+
+Untuk gerak lurus berkecepatan konstan, `x(t)` hampir linear. Hold-out menunjukkan linear
+(RMSE 11,5 mm) ≈ spline (11,8 mm), bahkan linear sedikit lebih baik karena spline
+*overshoot* pada jitter sampling. **Logika: kompleksitas metode harus sebanding dengan
+kompleksitas data.** Spline natural baru wajar bila ada kelengkungan nyata (mis. lintasan
+melengkung saat membelok); untuk segmen lurus, linear lebih murah dan lebih stabil.
+
+## 4. Analisis Galat Sampling (debug staircase) — temuan rekayasa nyata
+
+Saat memproses `/odom`, ditemukan posisi `x(t)` berbentuk **tangga**: nilai sama selama
+2–3 sampel lalu melompat ~89 mm. Diagnosis:
+
+- `odometry_publisher.py` mempublikasikan `/odom` pada **publish_rate = 50 Hz** (timer 20 ms),
+- tetapi `stm32_bridge` mengirim pesan encoder (`/encoder`) hanya **~17–20 Hz** (~50–60 ms),
+- di antara dua update encoder, `delta_dist = 0` → posisi ditahan, sehingga muncul tangga.
+
+**Konsekuensi numerik:**
+1. Diferensiasi `v = Δx/Δt` dengan beda maju/mundur pada data 50 Hz menghasilkan
+   **aliasing**: kecepatan melonjak 0 → ~2,25 m/s → 0 bergantian (rata-rata benar, tapi
+   sesaatnya salah). Ini bentuk **galat sampling/kuantisasi** klasik (laju baca ≠ laju
+   publikasi). Solusi analisis: *resample/dedup* ke titik update encoder asli sebelum
+   menurunkan.
+2. Beda pusat relatif kebal karena merata-ratakan dua selang → salah satu alasan kuat
+   memilihnya untuk feedback kecepatan.
+
+**Catatan untuk perbaikan kode (di luar lingkup laporan):** isu ini hanya mengganggu
+*nilai kecepatan sesaat* yang dilaporkan (`twist.twist.linear.x`); integrasi posisi
+x/y/θ tidak terpengaruh karena `Δt` saling meniadakan pada `delta_theta` dan `delta_dist`
+dipakai langsung. Terpisah dari ini, kalibrasi `dist_per_tick` masih perlu dikoreksi
+faktor ~2,55× (lihat Fase 5).
+
+---
+
+*Sumber data: pesan `sensor_msgs/LaserScan` dari RPLIDAR C1 (data_lidar_mentah.txt),
+rekaman `/odom` (`odom_20260614_213654.csv`, data posisi-vs-waktu), pengukuran meteran
+fisik (odom-vs-real 5 jarak), dan parameter node `odometry_publisher.py` repository AMR.*
