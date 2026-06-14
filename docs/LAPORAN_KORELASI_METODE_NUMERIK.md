@@ -39,11 +39,13 @@ menjadi besaran fisik (jarak, kecepatan, posisi, peta).
 
 - [ ] Akar persamaan (root finding) — tidak ada implementasi eksplisit di kode sendiri
 - [ ] Sistem persamaan linear — ada, tapi di dalam library RTAB-Map (ICP/pose-graph), bukan kode sendiri
-- [ ] Regresi / curve fitting — ada (kalibrasi encoder, fit dinding LiDAR); boleh dicentang bila mau menambah, didukung data
+- [x] **Regresi / curve fitting** — kuat, didukung data empiris odom-vs-real (R² = 0,998,
+  lihat Bagian B Fase 5)
 - [ ] Optimasi numerik — ada, tapi tersembunyi di RTAB-Map (pose-graph optimization)
 
-> Catatan: Regresi sebenarnya kuat (lihat fit dinding RMSE 2.9 mm di Bagian B). Boleh
-> dicentang jika ingin menambah bobot, karena buktinya ada di data LiDAR.
+> Catatan: Regresi awalnya hanya didukung fit dinding LiDAR (RMSE 2,9 mm). Sekarang
+> ada bukti lebih kuat: regresi linear odom-vs-real (5 titik pengukuran meteran),
+> R² = 0,998 — sekaligus mengungkap galat kalibrasi `dist_per_tick` (lihat Fase 5).
 
 ---
 
@@ -216,8 +218,37 @@ Sensor mentah masuk: LiDAR (`/scan`, 720 berkas @ 10 Hz), encoder (tick), IMU.
 - **RMSE fit dinding:** regresi garis kuadrat-terkecil pada segmen dinding LiDAR
   memberi RMSE residual **2,9 mm** → membuktikan titik membentuk garis lurus (dinding
   rata) dan sensor akurat.
-- **Bandingkan vs referensi:** lintasan hasil integrasi odometry dibandingkan posisi
-  awal-akhir nyata (robot kembali ke titik "X") → galat akumulasi (drift).
+- **Bandingkan vs referensi (odom vs meteran):** robot diperintah menempuh jarak
+  target 0,5/1,0/1,5/2,0/2,5 m, posisi `/odom` dicatat dan jarak fisik diukur dengan
+  meteran. Hasil:
+
+  | Target (m) | Odom (m) | Real/meteran (m) | Galat absolut (m) | Galat relatif |
+  |---|---|---|---|---|
+  | 0,5 | 0,551 | 0,22 | 0,331 | 150,5% |
+  | 1,0 | 1,046 | 0,41 | 0,636 | 155,1% |
+  | 1,5 | 1,553 | 0,61 | 0,943 | 154,6% |
+  | 2,0 | 2,043 | 0,81 | 1,233 | 152,2% |
+  | 2,5 | 2,534 | 0,96 | 1,574 | 164,0% |
+
+  **Regresi linear** (real = a·odom + b), metode kuadrat-terkecil (normal equations):
+
+  ```
+  [ Σodom²  Σodom ] [a]   [Σ(odom·real)]
+  [ Σodom    n    ] [b] = [   Σreal     ]
+
+  [ 14,4045  7,7270 ] [a]   [5,5849]
+  [  7,7270  5      ] [b] = [3,0100]
+  ```
+
+  Hasil: **a = 0,3789**, **b = 0,0165**, **R² = 0,998**, RMSE = 0,012 m.
+
+  Linearitas R² = 0,998 menunjukkan hubungan odom-vs-real **konsisten** (bukan noise
+  acak) → ini galat **sistematik kalibrasi**, bukan galat alat random. Rasio rata-rata
+  odom/real ≈ **2,55×**, konstan di semua jarak → mengindikasikan parameter
+  `dist_per_tick` (Lampiran, 0,3255 mm/tick) terlalu besar dengan faktor ~2,55, sehingga
+  odometry melaporkan jarak ~2,55× lebih jauh dari gerak fisik aktual robot.
+  *(Perbaikan parameter ini didiskusikan terpisah di luar laporan — di sini cukup
+  sebagai bukti penerapan regresi linear pada data project.)*
 
 ---
 
