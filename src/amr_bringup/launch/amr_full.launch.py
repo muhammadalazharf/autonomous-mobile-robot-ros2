@@ -140,10 +140,21 @@ def generate_launch_description():
         parameters=[{
             'wheel_radius':         0.0775,
             'wheelbase':            0.50,
-            'pulses_per_revolution': 1496,
+            # KALIBRASI EMPIRIS (2026-06-14): uji odom-vs-meteran 5 jarak
+            # (0.5/1.0/1.5/2.0/2.5 m -> 22/41/61/81/96 cm) memberi faktor
+            # over-report 2.58x, R^2=0.998 (fit proporsional real=0.3877*odom).
+            # PPR efektif = 1496 / 0.3877 = 3858 (mengoreksi asumsi gear/quad
+            # pada chain 11 PPR x 4 quad x 1:34). dist_per_tick: 0.3255 -> 0.1262 mm.
+            'pulses_per_revolution': 3858,
             'encoder_period':       0.05,
             'publish_rate':         50.0,
-            'publish_tf':           False,
+            # publish_tf wheel odom HANYA saat VIO (RTAB-Map) MATI, supaya
+            # wheel odom menyediakan TF odom->base_link untuk 2D SLAM (Path A).
+            # Saat use_rtabmap=true, VIO yang publish TF -> wheel odom HARUS False
+            # (menghindari TF conflict). Dikontrol otomatis di bawah.
+            'publish_tf': ParameterValue(
+                PythonExpression(["'", use_rtabmap, "' != 'true'"]),
+                value_type=bool),
         }],
     )
 

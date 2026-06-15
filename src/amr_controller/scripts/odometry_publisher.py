@@ -67,7 +67,7 @@ class OdometryPublisher(Node):
         # ========== Parameters ==========
         self.declare_parameter('wheel_radius', 0.0775)        # 155 mm / 2
         self.declare_parameter('wheelbase', 0.500)             # m
-        self.declare_parameter('pulses_per_revolution', 1496)  # 11 PPR × 4 quad × 1:34
+        self.declare_parameter('pulses_per_revolution', 3858)  # kalibrasi empiris odom-vs-meteran 5 jarak (R²=0.998, over-report 2.58×); efektif, bukan 1496 teoretis (11×4×1:34)
         self.declare_parameter('max_steer_deg', 45.0)
         self.declare_parameter('publish_rate', 50.0)           # Hz
         self.declare_parameter('joy_steer_axis', 3)
