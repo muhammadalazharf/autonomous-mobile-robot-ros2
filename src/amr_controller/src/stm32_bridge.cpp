@@ -116,6 +116,11 @@ private:
   bool manual_override_ = false;
   bool autonomous_active_ = false;
 
+  // Software ramping: limit PWM change rate to reduce motor inrush current
+  // and prevent power-rail brownout that freezes the NUC.
+  int current_pwm_ = 0;
+  static constexpr int MAX_PWM_STEP = 400;  // max PWM change per send_command call
+
   // --------------------------------------------------
   // MANUAL: Joystick callback
   // --------------------------------------------------
@@ -219,8 +224,20 @@ private:
   // --------------------------------------------------
   void send_command(int velocity, int steering)
   {
+    // Software ramping: limit PWM step to reduce inrush current.
+    // SAFETY: stop commands (velocity == 0) bypass the ramp entirely.
+    if (velocity == 0) {
+      current_pwm_ = 0;
+    } else if (velocity > current_pwm_ + MAX_PWM_STEP) {
+      current_pwm_ += MAX_PWM_STEP;
+    } else if (velocity < current_pwm_ - MAX_PWM_STEP) {
+      current_pwm_ -= MAX_PWM_STEP;
+    } else {
+      current_pwm_ = velocity;
+    }
+
     char buffer[64];
-    snprintf(buffer, sizeof(buffer), "V:%d,S:%d\n", velocity, steering);
+    snprintf(buffer, sizeof(buffer), "V:%d,S:%d\n", current_pwm_, steering);
     ssize_t n = write(serial_fd_, buffer, strlen(buffer));
     if (n < 0) {
       RCLCPP_ERROR(this->get_logger(), "[ERROR] Failed to write to serial port!");
