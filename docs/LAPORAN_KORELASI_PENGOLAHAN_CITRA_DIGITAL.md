@@ -81,31 +81,170 @@ Output akhir image-processing pipeline:
 # BAGIAN B — ALUR PROSES CITRA: FRAME-TO-MAP (URAIAN INTI)
 
 Inti laporan: bagaimana satu **frame RGB-D** dari D455 diolah berlapis-lapis sampai
-menjadi sel pada **occupancy grid `/map`**. Diagram alir tingkat tinggi:
+menjadi sel pada **occupancy grid `/map`**.
 
+## B.0 Diagram blok alir lengkap (top-down)
+
+Diagram berikut memvisualisasikan urutan blok pemrosesan dari hardware kamera di
+paling atas, turun ke tiap operasi citra, sampai output peta di paling bawah. Setiap
+blok punya: (a) nama operasi PCD, (b) input/output topik ROS, (c) sitasi `file:baris`
+untuk verifikasi.
+
+```mermaid
+flowchart TD
+    %% ==================== HARDWARE LAYER ====================
+    HW["🎥 RealSense D455<br/>RGB 848×480 + Depth 848×480 + IMU<br/>(gyro 200Hz, accel 100Hz)"]:::hw
+
+    %% ==================== STEP 1 ====================
+    HW --> STEP1["⚙️ STEP 1 — Akuisisi & Pra-pemrosesan<br/>(driver realsense2_camera)<br/>• Bayer demosaicing (ASIC D4)<br/>• Stereo IR → depth (ASIC D4)<br/>• Temporal filter (IIR antar frame)<br/>• Spatial filter (edge-preserving)<br/>• Depth-color registration<br/>• Auto-exposure<br/><i>sensors_launch.py:62-94</i>"]:::step
+
+    STEP1 --> TOPIC_RGB[/"/camera/camera/color/image_raw<br/>(RGB raw, bgr8)"/]:::topic
+    STEP1 --> TOPIC_DEPTH[/"/camera/camera/aligned_depth_to_color/image_raw<br/>(Depth 16UC1, mm, aligned)"/]:::topic
+    STEP1 --> TOPIC_CAMINFO[/"/camera/camera/color/camera_info<br/>(intrinsic K, distortion)"/]:::topic
+    STEP1 --> TOPIC_GYRO[/"/camera/camera/gyro/sample"/]:::topic
+    STEP1 --> TOPIC_ACCEL[/"/camera/camera/accel/sample"/]:::topic
+
+    %% ==================== STEP 2 ====================
+    TOPIC_RGB --> STEP2A
+    TOPIC_DEPTH --> STEP2A
+    TOPIC_CAMINFO --> STEP2A
+    STEP2A["⏱️ STEP 2a — RGB-D Sync<br/>ApproximateTimeSynchronizer<br/>(queue=30, slop ~33ms)<br/><i>rtabmap_mapping.launch.py:130-144</i>"]:::step
+
+    TOPIC_GYRO --> STEP2B
+    TOPIC_ACCEL --> STEP2B
+    STEP2B["⏱️ STEP 2b — IMU Merger<br/>message_filters ApproxTimeSync<br/>(queue=30, slop=0.05s)<br/><i>imu_merger_node.py:120-135</i>"]:::step
+
+    STEP2A --> TOPIC_RGBD[/"/rgbd_image<br/>(synced RGB+Depth)"/]:::topic
+    STEP2B --> TOPIC_IMU[/"/imu/data<br/>(sensor_msgs/Imu @ ~100Hz)"/]:::topic
+
+    %% ==================== STEP 3 ====================
+    TOPIC_RGBD --> STEP3
+    TOPIC_IMU --> STEP3
+    STEP3["🎯 STEP 3 — Visual-Inertial Odometry<br/>(Frame-to-Frame tracking)<br/>1. GFTT corner detection (Vis/MaxFeatures: 1000)<br/>2. Optical flow Lucas-Kanade pyramidal<br/>3. Depth association via intrinsic K<br/>4. PnP + RANSAC pose estimation<br/>5. IMU gyro prediction integration<br/>6. Variance gating (Odom/MaxVariance: 0.05)<br/><i>rtabmap_mapping.launch.py:152-212</i>"]:::step
+
+    STEP3 --> TOPIC_ODOM[/"/rtabmap/odom<br/>(nav_msgs/Odometry)<br/>+ TF: odom → base_link"/]:::topic
+
+    %% ==================== STEP 4 ====================
+    TOPIC_DEPTH --> STEP4
+    TOPIC_CAMINFO --> STEP4
+    STEP4["📐 STEP 4 — Depth → LaserScan 2D<br/>(Dimensionality Reduction)<br/>1. ROI: 10 baris tengah depth image<br/>2. Min-pooling per kolom (848 kolom)<br/>3. Range clipping [0.2 - 5.0 m]<br/>4. Polar conversion (X,Z) → (r,θ)<br/>Output: pseudo-LiDAR 848 berkas @ 30Hz<br/><i>rtabmap_mapping.launch.py:376-394</i>"]:::step
+
+    STEP4 --> TOPIC_DEPTHSCAN[/"/depth_scan<br/>(sensor_msgs/LaserScan)"/]:::topic
+
+    %% ==================== STEP 5 ====================
+    TOPIC_RGBD --> STEP5
+    TOPIC_ODOM --> STEP5
+    LIDAR[("📡 RPLIDAR C1<br/>/scan @ 10Hz")]:::hw
+    LIDAR --> STEP5
+
+    STEP5["🗺️ STEP 5 — SLAM Frame-to-Map (RTAB-Map)<br/><br/>5.1 Place Recognition<br/>• BRIEF binary descriptor (Vis/FeatureType: 8)<br/>• Bag-of-Words TF-IDF (Kp/MaxFeatures: 400)<br/><br/>5.2 Loop Closure Detection<br/>• Bayesian likelihood (Rtabmap/LoopThr: 0.05)<br/>• Detection rate 2.0 Hz<br/><br/>5.3 Geometric Verification<br/>• ICP point-to-plane (Icp/PointToPlane: true)<br/>• VoxelSize: 0.05m, MaxCorrespondence: 0.1m<br/>• Iterations: 15<br/><br/>5.4 Pose Graph Optimization<br/>• g2o/GTSAM bundle adjustment<br/>• Update TF: map → odom<br/><br/>5.5 Point Cloud Accumulation<br/>• Back-project depth × K → 3D points<br/>• Voxel filter (0.05m), statistical outlier removal<br/>• Decimation 2× (¼ density)<br/><br/>5.6 Occupancy Grid Projection<br/>• Ray-casting per cell (Grid/RayTracing: true)<br/>• CellSize: 0.05m, RangeMax: 5.0m<br/>• Noise filter (radius 0.5m, min_neighbors 5)<br/><br/><i>rtabmap_mapping.launch.py:219-368</i>"]:::stepBig
+
+    %% ==================== OUTPUT ====================
+    STEP5 --> OUT_MAP[/"/map<br/>(nav_msgs/OccupancyGrid<br/>res 5cm)"/]:::output
+    STEP5 --> OUT_CLOUD[/"/cloud_map<br/>(sensor_msgs/PointCloud2<br/>3D agregat)"/]:::output
+    STEP5 --> OUT_TF[/"TF: map → odom<br/>(global correction)"/]:::output
+
+    OUT_MAP --> NAV2["🚗 NAV2 Global Costmap<br/>(global planner SmacPlannerHybrid)"]:::sink
+    OUT_CLOUD --> RVIZ["🖥️ RViz visualization<br/>(3D inspection)"]:::sink
+
+    %% ==================== STYLE ====================
+    classDef hw fill:#2d3748,stroke:#4a5568,color:#fff,stroke-width:2px
+    classDef step fill:#2b6cb0,stroke:#2c5282,color:#fff,stroke-width:2px
+    classDef stepBig fill:#2b6cb0,stroke:#2c5282,color:#fff,stroke-width:3px
+    classDef topic fill:#38a169,stroke:#2f855a,color:#fff,stroke-width:1px
+    classDef output fill:#d69e2e,stroke:#b7791f,color:#fff,stroke-width:2px
+    classDef sink fill:#805ad5,stroke:#6b46c1,color:#fff,stroke-width:2px
 ```
-[RealSense D455 hardware]
-    │  RGB (848×480) + Depth (848×480, aligned) + IMU (gyro 200Hz, accel 100Hz)
-    ▼
-[Step 1] Akuisisi & Pra-pemrosesan di driver D455
-    │  (auto-exposure, temporal filter, spatial filter, depth-color alignment)
-    ▼
-[Step 2] Sinkronisasi multi-modal
-    │  rgbd_sync (RGB+Depth+CamInfo)   imu_merger (gyro+accel)
-    ▼
-[Step 3] Visual-Inertial Odometry (Frame-to-Frame)
-    │  GFTT features → optical flow → PnP pose → /rtabmap/odom
-    ▼
-[Step 4] Reduksi dimensi: Depth → LaserScan 2D
-    │  depthimage_to_laserscan → /depth_scan
-    ▼
-[Step 5] SLAM Frame-to-Map (RTAB-Map)
-    │  Feature extraction (BRIEF) → Place recognition (BoW)
-    │  → Loop closure detection → ICP refinement → Graph optimization
-    │  → 3D point cloud accumulation → Ray-casting → 2D occupancy grid
-    ▼
-[Output] /map (Occupancy Grid 5cm) + /cloud_map (PointCloud 3D)
+
+## B.0.1 Diagram blok komponen tambahan (line-segments & VR inference)
+
+```mermaid
+flowchart TD
+    LIDAR2[("📡 RPLIDAR C1<br/>/scan")]:::hw
+    DEPTH2[("📷 D455 Depth<br/>/camera/depth/image_rect_raw")]:::hw
+
+    LIDAR2 --> LS["📏 Line-Segments Node<br/>(amr_visual_regression)<br/><br/>1. Polar → Cartesian conversion<br/>2. Split-on-gap (threshold 0.30m)<br/>3. Iterative RANSAC line fit<br/>   • 30 iterasi per garis<br/>   • inlier_threshold: 0.05m<br/>   • max 3 garis/cluster<br/>4. PCA refit (eigendekomposisi)<br/><br/><i>lidar_line_segments_node.py:39-367</i>"]:::step
+
+    LS --> LS_OUT[/"/amr/line_segments<br/>(visualization_msgs/MarkerArray)"/]:::topic
+    LS --> LS_CNT[/"/amr/line_count<br/>(std_msgs/Int32)"/]:::topic
+
+    DEPTH2 --> VR["🧠 Visual Regression Inference<br/>(amr_visual_regression)<br/><br/>1. ROI cropping (rows 200-360)<br/>2. Spatial gridding 3×3 (9 regions)<br/>3. Statistical features per region:<br/>   • mean, min, std, obstacle_count<br/>4. Concat → 36-D feature vector<br/>5. StandardScaler (z-score)<br/>6. RandomForest.predict()<br/>7. Safety: min_depth < 0.4m → V=0<br/><br/><i>vr_inference_node.py:39-183</i>"]:::step
+
+    VR --> VR_OUT[/"/cmd_vel_visual<br/>(geometry_msgs/Twist)"/]:::topic
+
+    classDef hw fill:#2d3748,stroke:#4a5568,color:#fff,stroke-width:2px
+    classDef step fill:#2b6cb0,stroke:#2c5282,color:#fff,stroke-width:2px
+    classDef topic fill:#38a169,stroke:#2f855a,color:#fff,stroke-width:1px
 ```
+
+## B.0.2 Pemetaan blok → konsep PCD klasik
+
+```mermaid
+flowchart LR
+    subgraph PCD["📚 Konsep PCD Klasik"]
+        P1[Image Acquisition]
+        P2[Noise Filtering<br/>temporal/spatial]
+        P3[Image Registration<br/>depth↔color]
+        P4[Feature Detection<br/>corner/Harris/Shi-Tomasi]
+        P5[Optical Flow<br/>Lucas-Kanade]
+        P6[3D Projection<br/>camera model K]
+        P7[Robust Regression<br/>RANSAC]
+        P8[Binary Descriptor<br/>BRIEF/LBP]
+        P9[Bag-of-Words<br/>histogram quantization]
+        P10[ICP Registration<br/>point cloud alignment]
+        P11[Voxel Filtering<br/>3D quantization]
+        P12[Statistical Outlier<br/>neighborhood filtering]
+        P13[Ray-casting<br/>line rasterization]
+        P14[ROI Processing]
+        P15[Statistical Features<br/>mean/min/std]
+    end
+
+    subgraph IMPL["⚙️ Implementasi di AMR"]
+        I1[Step 1: D455 driver]
+        I2[Step 1: temporal/spatial filter]
+        I3[Step 1: align_depth]
+        I4[Step 3: GFTT]
+        I5[Step 3: rgbd_odometry]
+        I6[Step 3 & 5: back-projection]
+        I7[Step 3: PnP RANSAC + C.1: line RANSAC]
+        I8[Step 5.1: BRIEF]
+        I9[Step 5.1: BoW vocabulary]
+        I10[Step 5.3: ICP point-to-plane]
+        I11[Step 5.5: cloud_voxel_size]
+        I12[Step 5.5: noise_filtering]
+        I13[Step 5.6: Grid/RayTracing]
+        I14[Step 4 & C.2: ROI]
+        I15[Step 4: min-pool + C.2: 36-D features]
+    end
+
+    P1 --> I1
+    P2 --> I2
+    P3 --> I3
+    P4 --> I4
+    P5 --> I5
+    P6 --> I6
+    P7 --> I7
+    P8 --> I8
+    P9 --> I9
+    P10 --> I10
+    P11 --> I11
+    P12 --> I12
+    P13 --> I13
+    P14 --> I14
+    P15 --> I15
+
+    classDef pcd fill:#553c9a,stroke:#44337a,color:#fff
+    classDef impl fill:#2c7a7b,stroke:#234e52,color:#fff
+    class P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11,P12,P13,P14,P15 pcd
+    class I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11,I12,I13,I14,I15 impl
+```
+
+> **Catatan render**: GitHub me-render blok `mermaid` di atas otomatis sebagai gambar
+> SVG di browser. Untuk dipakai di laporan tulis tangan/PDF: screenshot tampilan
+> GitHub (atau buka https://mermaid.live, paste kode di antara backticks `mermaid`,
+> export PNG/SVG).
+
+---
 
 Berikut uraian per-step beserta operasi citra yang terjadi.
 
