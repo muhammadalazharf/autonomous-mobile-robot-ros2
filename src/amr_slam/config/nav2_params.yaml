@@ -6,8 +6,8 @@
 #   - Controller     : RegulatedPurePursuit (Ackermann-friendly)
 #   - Costmap radius : sesuai dimensi robot (chassis 0.6 x 0.35)
 #
-# IMPORTANT: Cmd_vel topic Nav2 dipublish ke /cmd_vel_nav (bukan /cmd_vel
-# default), agar bisa di-arbitrasi oleh failover_controller.
+# Mode DEMO: Nav2 publish langsung ke /cmd_vel (tanpa failover).
+# Jalankan amr_full.launch.py dengan use_failover:=false.
 # =====================================================================
 
 amcl:
@@ -22,7 +22,7 @@ bt_navigator:
     odom_topic: /odom
     bt_loop_duration: 10
     default_server_timeout: 20
-    default_nav_to_pose_bt_xml: "navigate_to_pose_w_replanning_and_recovery.xml"
+    default_nav_to_pose_bt_xml: "/opt/ros/humble/share/nav2_bt_navigator/behavior_trees/navigate_to_pose_w_replanning_and_recovery.xml"
 
 controller_server:
   ros__parameters:
@@ -91,12 +91,12 @@ local_costmap:
       width: 4
       height: 4
       resolution: 0.05
-      robot_radius: 0.35    # konservatif: chassis 0.6m diagonal/2
+      robot_radius: 0.28
       plugins: ["voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.45
+        inflation_radius: 0.25
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: true
@@ -106,7 +106,7 @@ local_costmap:
         z_voxels: 16
         max_obstacle_height: 2.0
         mark_threshold: 0
-        observation_sources: scan depth_scan
+        observation_sources: scan
         scan:
           topic: /scan
           max_obstacle_height: 2.0
@@ -117,17 +117,6 @@ local_costmap:
           raytrace_min_range: 0.0
           obstacle_max_range: 8.0
           obstacle_min_range: 0.0
-        depth_scan:
-          topic: /depth_scan
-          max_obstacle_height: 1.5
-          min_obstacle_height: 0.1
-          clearing: true
-          marking: true
-          data_type: "LaserScan"
-          raytrace_max_range: 5.0
-          raytrace_min_range: 0.2
-          obstacle_max_range: 4.5
-          obstacle_min_range: 0.2
 
 global_costmap:
   global_costmap:
@@ -137,14 +126,14 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_link
       use_sim_time: false
-      robot_radius: 0.35
+      robot_radius: 0.28
       resolution: 0.05
       track_unknown_space: true
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: true
-        observation_sources: scan depth_scan
+        observation_sources: scan
         scan:
           topic: /scan
           max_obstacle_height: 2.0
@@ -155,24 +144,13 @@ global_costmap:
           raytrace_min_range: 0.0
           obstacle_max_range: 8.0
           obstacle_min_range: 0.0
-        depth_scan:
-          topic: /depth_scan
-          max_obstacle_height: 1.5
-          min_obstacle_height: 0.1
-          clearing: true
-          marking: true
-          data_type: "LaserScan"
-          raytrace_max_range: 5.0
-          raytrace_min_range: 0.2
-          obstacle_max_range: 4.5
-          obstacle_min_range: 0.2
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: true
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.45
+        inflation_radius: 0.25
       always_send_full_costmap: true
 
 planner_server:
@@ -225,7 +203,9 @@ behavior_server:
     costmap_topic: local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
     cycle_frequency: 10.0
-    behavior_plugins: ["backup", "drive_on_heading", "wait"]
+    behavior_plugins: ["spin", "backup", "drive_on_heading", "wait"]
+    spin:
+      plugin: "nav2_behaviors/Spin"
     backup:
       plugin: "nav2_behaviors/BackUp"
     drive_on_heading:
