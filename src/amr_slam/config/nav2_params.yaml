@@ -23,24 +23,6 @@ bt_navigator:
     bt_loop_duration: 10
     default_server_timeout: 20
     default_nav_to_pose_bt_xml: "navigate_to_pose_w_replanning_and_recovery.xml"
-    plugin_lib_names:
-      - nav2_compute_path_to_pose_action_bt_node
-      - nav2_compute_path_through_poses_action_bt_node
-      - nav2_smooth_path_action_bt_node
-      - nav2_follow_path_action_bt_node
-      - nav2_spin_action_bt_node
-      - nav2_wait_action_bt_node
-      - nav2_back_up_action_bt_node
-      - nav2_drive_on_heading_bt_node
-      - nav2_clear_costmap_service_bt_node
-      - nav2_is_stuck_condition_bt_node
-      - nav2_goal_reached_condition_bt_node
-      - nav2_initial_pose_received_condition_bt_node
-      - nav2_recovery_node_bt_node
-      - nav2_pipeline_sequence_bt_node
-      - nav2_round_robin_node_bt_node
-      - nav2_transform_available_condition_bt_node
-      - nav2_distance_traveled_condition_bt_node
 
 controller_server:
   ros__parameters:
@@ -56,19 +38,19 @@ controller_server:
     controller_plugins: ["FollowPath"]
 
     progress_checker:
-      plugin: "nav2_controller/SimpleProgressChecker"
+      plugin: "nav2_controller::SimpleProgressChecker"
       required_movement_radius: 0.5
       movement_time_allowance: 10.0
 
     general_goal_checker:
-      plugin: "nav2_controller/SimpleGoalChecker"
+      plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.25
       yaw_goal_tolerance: 0.25
       stateful: true
 
     # ---- Regulated Pure Pursuit (Ackermann friendly) ----
     FollowPath:
-      plugin: "nav2_regulated_pure_pursuit_controller/RegulatedPurePursuitController"
+      plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
       # FIX: turunkan dari 0.4 → 0.3 m/s — robot terlalu cepat saat mapping/
       # navigation menyebabkan VIO lost tracking. 0.3 m/s = jarak per frame
       # (33ms @ 30Hz) hanya 1cm, masih overlap features antar frame.
@@ -112,11 +94,11 @@ local_costmap:
       robot_radius: 0.35    # konservatif: chassis 0.6m diagonal/2
       plugins: ["voxel_layer", "inflation_layer"]
       inflation_layer:
-        plugin: "nav2_costmap_2d/InflationLayer"
+        plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
         inflation_radius: 0.45
       voxel_layer:
-        plugin: "nav2_costmap_2d/VoxelLayer"
+        plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: true
         publish_voxel_map: false
         origin_z: 0.0
@@ -160,7 +142,7 @@ global_costmap:
       track_unknown_space: true
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       obstacle_layer:
-        plugin: "nav2_costmap_2d/ObstacleLayer"
+        plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: true
         observation_sources: scan depth_scan
         scan:
@@ -185,10 +167,10 @@ global_costmap:
           obstacle_max_range: 4.5
           obstacle_min_range: 0.2
       static_layer:
-        plugin: "nav2_costmap_2d/StaticLayer"
+        plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: true
       inflation_layer:
-        plugin: "nav2_costmap_2d/InflationLayer"
+        plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
         inflation_radius: 0.45
       always_send_full_costmap: true
@@ -265,7 +247,7 @@ waypoint_follower:
     stop_on_failure: false
     waypoint_task_executor_plugin: "wait_at_waypoint"
     wait_at_waypoint:
-      plugin: "nav2_waypoint_follower/WaitAtWaypoint"
+      plugin: "nav2_waypoint_follower::WaitAtWaypoint"
       enabled: true
       waypoint_pause_duration: 200
 
