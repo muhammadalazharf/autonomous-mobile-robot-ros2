@@ -31,6 +31,9 @@ rtabmap:
     database_path: ~/.ros/rtabmap.db
     Mem/IncrementalMemory: "false"       # KEY DIFFERENCE: localization mode
     Mem/InitWMWithAllNodes: "true"       # load semua node dari DB
+    # FIX 19-Jun: samakan STMSize dengan mapping (10) agar working memory
+    # window konsisten saat scoring loop closure candidate.
+    Mem/STMSize: "10"
 
     # FIX: konsisten dengan rtabmap_mapping.yaml (Vis+ICP, bukan ICP-only)
     # ICP-only sulit relocalize karena tidak pakai visual features dari DB.
@@ -42,9 +45,16 @@ rtabmap:
 
     Vis/FeatureType: "8"
     Vis/MaxFeatures: "1000"
-    # FIX: turunkan dari 15 → 10 (konsisten dgn mapping), supaya tidak gagal
-    # relocalize di area textureless.
-    Vis/MinInliers: "10"
+    # FIX 19-Jun: 10 → 8 supaya MATCH dengan ambang yang dipakai SAAT MAPPING.
+    # Map dibangun dengan MinInliers=8; relokalisasi tidak boleh lebih ketat
+    # dari ambang baked-in peta — kalau tidak, loop closure selalu reject
+    # walau peta sehat (sumber loop-rejection saat lock pertama).
+    Vis/MinInliers: "8"
+
+    # FIX 19-Jun: tambahkan Kp/* untuk BoW place recognition (HILANG sebelumnya).
+    # Tanpa ini, vocabulary lemah saat scoring node-tersimpan → likelihood rendah.
+    Kp/MaxFeatures: "400"
+    Kp/DetectorStrategy: "8"               # GFTT/BRIEF, sama dengan Vis/FeatureType
 
     # Localization khusus: lebih banyak proximity check
     RGBD/ProximityBySpace: "true"
@@ -52,8 +62,20 @@ rtabmap:
     RGBD/LocalRadius: "5.0"
     RGBD/ProximityMaxGraphDepth: "50"
     RGBD/ProximityPathMaxNeighbors: "10"
-    Rtabmap/LoopThr: "0.11"
-    Rtabmap/DetectionRate: "1.0"
+    # FIX 19-Jun: aktifkan re-extract features saat verifikasi loop candidate.
+    # Tutorial resmi rtabmap_ros: tanpa ini, banyak kandidat dengan likelihood
+    # tinggi tetap reject karena gagal verifikasi geometris.
+    RGBD/LoopClosureReextractFeatures: "true"
+    # FIX 19-Jun: longgar dari default 3.0 → 5.0, terima koreksi pose lebih besar
+    # saat lock pertama (sering pose initial guess jauh dari true pose).
+    RGBD/OptimizeMaxError: "5.0"
+
+    # FIX 19-Jun: 0.11 → 0.05 supaya MATCH dengan ambang mapping.
+    # 0.11 = butuh keyakinan 2× lebih tinggi → wajar selalu reject.
+    Rtabmap/LoopThr: "0.05"
+    # FIX 19-Jun: 1.0 → 2.0 Hz supaya MATCH dengan mapping.
+    # Lebih sering cek = lebih banyak peluang lock saat robot lewat titik kunci.
+    Rtabmap/DetectionRate: "2.0"
 
     publish_cloud_obstacles: true
     publish_cloud_ground: true
