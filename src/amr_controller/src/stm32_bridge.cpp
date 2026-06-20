@@ -189,7 +189,10 @@ private:
 
     int steering = STEER_TRIM;
     if (std::fabs(v) > 0.05) {
-      double steer_rad = std::atan(WHEELBASE * w / v);
+      // Negasi steer_rad: bench test (Mervi, 20 Jun) konfirmasi angular.z
+      // positif (perintah kiri) → roda depan belok kanan (kebalik).
+      // Velocity TIDAK dinegasi: maju/mundur sudah benar (kabel motor ditukar).
+      double steer_rad = -std::atan(WHEELBASE * w / v);
       steering = static_cast<int>(steer_rad * 180.0 / M_PI) + STEER_TRIM;
     }
 
