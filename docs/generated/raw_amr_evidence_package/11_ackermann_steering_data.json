@@ -1,0 +1,62 @@
+[
+  {
+    "item": "Wheelbase",
+    "nilai": "0.500 m",
+    "bukti": "src/amr_description/urdf/amr_description.urdf.xacro",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Track width",
+    "nilai": "0.400 m",
+    "bukti": "src/amr_description/urdf/amr_description.urdf.xacro",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Wheel radius",
+    "nilai": "0.0775 m",
+    "bukti": "src/amr_description/urdf/amr_description.urdf.xacro",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Steering limit",
+    "nilai": "±45 deg (STEER_TRIM -5)",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Min turning radius",
+    "nilai": "0.90 m (Nav2)",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Konversi Twist->steer",
+    "nilai": "steer = -atan(wheelbase*angular.z/linear.x)",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Hubungan v & w",
+    "nilai": "delta = atan(L*w/v); v dari linear.x, w dari angular.z",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Masalah arah kemudi",
+    "nilai": "angular.z kiri -> roda belok kanan (kebalik)",
+    "bukti": "bench test 20-Jun",
+    "status": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "item": "Solusi negasi",
+    "nilai": "steer_rad = -atan(...) (commit fec1ee5)",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Keterbatasan Nav2",
+    "nilai": "tak bisa rotate-in-place (use_rotate_to_heading=false); butuh ruang manuver",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  }
+]

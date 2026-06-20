@@ -1,0 +1,20 @@
+# 14 — Kendala & Solusi
+
+Daftar kendala lintas subsistem (hardware s/d dokumentasi), termasuk rantai 8 gerbang Nav2.
+
+| kategori | kendala | gejala | penyebab | dampak | solusi | status_akhir | bukti | tindak_lanjut |
+|---|---|---|---|---|---|---|---|---|
+| Power | Brownout saat motor start | SSH freeze, RealSense timeout | inrush PG45 -> voltage sag NUC | sistem freeze saat akselerasi | PWM ramping (400/call), e-stop bypass | Selesai | src/amr_controller/src/stm32_bridge.cpp | tidak |
+| Odometry | Over-report 2.58x | jarak odom > nyata | PPR teoretis salah | estimasi posisi meleset | kalibrasi PPR -> 3858 (R2=0.998) | Selesai | src/amr_bringup/launch/amr_full.launch.py | tidak |
+| Sensor/VIO | VIO drift area minim tekstur | 3D cloud ghosting | pencahayaan & low-texture | peta menjalar | tuning exposure, re-mapping bersih, gravity constraint | Mitigasi | src/amr_bringup/launch/sensors_launch.py | ya (lighting) |
+| Mapping | Database kacau (duplikat/korup/near-static) | 24 DB, 2 rusak, 3 kosong, banyak duplikat | sesi terputus + backup manual | agregat membengkak | re-mapping bersih lab_demo_18jun.db; SOP penamaan | Selesai | docs/SOP_MAPPING_DAN_AUTONOMOUS.md | tidak |
+| Localization | Loop rejection | robot tak lock ke peta | ambang localization > mapping | lokalisasi gagal | samakan ambang (LoopThr 0.05, MinInliers 8, dst) | Selesai | src/amr_3d_mapping/config/rtabmap_localization.yaml | ya (bukti runtime) |
+| Nav2/plugin | VoxelLayer does not exist | plugin gagal load | format :: vs / campur | bringup gagal | seragamkan format per package | Selesai | src/amr_slam/config/nav2_params.yaml | tidak |
+| Nav2/BT | RemovePassedGoals already registered | crash startup | plugin_lib_names eksplisit -> registrasi ganda | Nav2 crash | hapus blok plugin_lib_names (auto-load) | Selesai | src/amr_slam/config/nav2_params.yaml | tidak |
+| Nav2/BT | Action server spin not available | BT gagal | spin tak terdaftar | navigasi gagal | daftarkan nav2_behaviors/Spin | Selesai | src/amr_slam/config/nav2_params.yaml | tidak |
+| Nav2/BT | Couldn't open input XML file | bt_navigator crash | path BT XML bukan absolut | navigasi gagal | path absolut BT XML | Selesai | src/amr_slam/config/nav2_params.yaml | tidak |
+| Nav2/costmap | collision ahead / lethal | planner no path | depth_scan baca lantai = obstacle hantu | robot tak bisa jalan | matikan depth_scan; radius 0.28; inflation 0.25 | Selesai | src/amr_slam/config/nav2_params.yaml | ya (kalibrasi depth) |
+| Nav2/topic | Nav2 kirim cmd_vel tapi diam | Failed to make progress | remap /cmd_vel->/cmd_vel_nav | robot diam | hapus remap (mode demo) | Selesai | src/amr_slam/launch/nav2.launch.py | ya (failover) |
+| Safety gate | Robot diam walau cmd_vel!=0 | tak gerak | autonomous_enabled default false | demo terblok | set true runtime | Selesai (runtime) | src/amr_controller/src/stm32_bridge.cpp | tidak |
+| Steering | Arah kemudi otonom terbalik | kiri -> kanan | tanda kemudi terbalik (bench test) | navigasi salah arah | negasi steer_rad | Diterapkan; verifikasi HW | src/amr_controller/src/stm32_bridge.cpp | ya (tes di robot) |
+| Dokumentasi | Progress tak tercatat di laporan | laporan ketinggalan | iterasi cepat | klaim kurang bukti | suplemen + bank data + evidence package | Selesai | docs/ | ya (bukti runtime) |

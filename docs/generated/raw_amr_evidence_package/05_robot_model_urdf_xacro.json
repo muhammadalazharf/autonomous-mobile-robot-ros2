@@ -1,0 +1,79 @@
+[
+  {
+    "parameter": "wheelbase",
+    "nilai": "0.500",
+    "satuan": "m",
+    "bukti": "src/amr_description/urdf/amr_description.urdf.xacro",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "parameter": "track_width",
+    "nilai": "0.400",
+    "satuan": "m",
+    "bukti": "src/amr_description/urdf/amr_description.urdf.xacro",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "parameter": "wheel_radius",
+    "nilai": "0.0775",
+    "satuan": "m (D=155mm)",
+    "bukti": "src/amr_description/urdf/amr_description.urdf.xacro",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "parameter": "wheel_width",
+    "nilai": "0.060",
+    "satuan": "m",
+    "bukti": "src/amr_description/urdf/amr_description.urdf.xacro",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "parameter": "chassis (LxWxH)",
+    "nilai": "0.600 x 0.350 x 0.150",
+    "satuan": "m",
+    "bukti": "src/amr_description/urdf/amr_description.urdf.xacro",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "parameter": "chassis_mass",
+    "nilai": "6.0",
+    "satuan": "kg",
+    "bukti": "src/amr_description/urdf/amr_description.urdf.xacro",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "parameter": "steering_range",
+    "nilai": "±45",
+    "satuan": "deg",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "parameter": "min_turning_radius",
+    "nilai": "0.90 (Nav2); 0.5-0.9 (rancangan)",
+    "satuan": "m",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "parameter": "lidar_height (z)",
+    "nilai": "0.250",
+    "satuan": "m",
+    "bukti": "src/amr_description/urdf/amr_description.urdf.xacro",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "parameter": "camera_x",
+    "nilai": "0.350",
+    "satuan": "m",
+    "bukti": "src/amr_description/urdf/amr_description.urdf.xacro",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "parameter": "camera_height (z)",
+    "nilai": "0.200",
+    "satuan": "m",
+    "bukti": "src/amr_description/urdf/amr_description.urdf.xacro",
+    "status": "Terverifikasi dari file"
+  }
+]

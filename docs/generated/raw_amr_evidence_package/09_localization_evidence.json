@@ -1,0 +1,86 @@
+[
+  {
+    "aspek": "Launch localization",
+    "nilai": "rtabmap_localization.launch.py",
+    "kategori": "terverifikasi",
+    "bukti": "src/amr_3d_mapping/launch/rtabmap_localization.launch.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Config localization",
+    "nilai": "rtabmap_localization.yaml",
+    "kategori": "terverifikasi",
+    "bukti": "src/amr_3d_mapping/config/rtabmap_localization.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Database dipakai",
+    "nilai": "lab_demo_18jun.db",
+    "kategori": "progress",
+    "bukti": "SOP/handover",
+    "status": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "aspek": "Mode",
+    "nilai": "Mem/IncrementalMemory=false; InitWMWithAllNodes=true",
+    "kategori": "terverifikasi",
+    "bukti": "src/amr_3d_mapping/config/rtabmap_localization.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "LoopThr",
+    "nilai": "0.05 (disamakan dgn mapping)",
+    "kategori": "terverifikasi",
+    "bukti": "src/amr_3d_mapping/config/rtabmap_localization.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Vis/MinInliers",
+    "nilai": "8",
+    "kategori": "terverifikasi",
+    "bukti": "src/amr_3d_mapping/config/rtabmap_localization.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "DetectionRate",
+    "nilai": "2.0 Hz",
+    "kategori": "terverifikasi",
+    "bukti": "src/amr_3d_mapping/config/rtabmap_localization.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Masalah: loop rejection",
+    "nilai": "config localization lebih ketat dari mapping",
+    "kategori": "progress",
+    "bukti": "docs/root_cause_analysis_nav_lokalisasi.md",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Solusi",
+    "nilai": "samakan ambang localization = mapping",
+    "kategori": "terverifikasi",
+    "bukti": "src/amr_3d_mapping/config/rtabmap_localization.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Topic /localization_pose",
+    "nilai": "tidak dikonfigurasi eksplisit",
+    "kategori": "kurang",
+    "bukti": "-",
+    "status": "Tidak ditemukan di repo/file saat ini"
+  },
+  {
+    "aspek": "Bukti keberhasilan",
+    "nilai": "loop closure hijau (handover 18-Jun)",
+    "kategori": "progress",
+    "bukti": "handover",
+    "status": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "aspek": "Bukti yang kurang",
+    "nilai": "screenshot/log /localization_pose, RMSE vs ground truth",
+    "kategori": "kurang",
+    "bukti": "-",
+    "status": "Tidak ditemukan di repo/file saat ini"
+  }
+]

@@ -1,0 +1,162 @@
+[
+  {
+    "subbab": "2.1 Konsep AMR",
+    "data_pendukung": "identitas proyek, target",
+    "bentuk_bukti": "narasi + spec",
+    "file_sumber": "00_project_identity",
+    "status_bukti": "Kuat",
+    "tabel_disarankan": "perbandingan AMR vs AGV",
+    "gambar_disarankan": "konsep robot",
+    "catatan": "definisi & cakupan"
+  },
+  {
+    "subbab": "2.2 Perancangan Hardware",
+    "data_pendukung": "inventaris hardware",
+    "bentuk_bukti": "tabel komponen",
+    "file_sumber": "01_hardware_inventory",
+    "status_bukti": "Kuat (sebagian perlu konfirmasi)",
+    "tabel_disarankan": "spec komponen",
+    "gambar_disarankan": "foto komponen, wiring",
+    "catatan": "BTS7960/buck perlu validasi"
+  },
+  {
+    "subbab": "2.3 Perakitan Platform",
+    "data_pendukung": "geometri, penempatan sensor",
+    "bentuk_bukti": "foto + dimensi",
+    "file_sumber": "05_robot_model_urdf_xacro",
+    "status_bukti": "Sedang",
+    "tabel_disarankan": "posisi sensor",
+    "gambar_disarankan": "foto robot terakit",
+    "catatan": "FOTO perlu ditambah"
+  },
+  {
+    "subbab": "2.4 Setup ROS2",
+    "data_pendukung": "env, workspace, deps",
+    "bentuk_bukti": "daftar + screenshot",
+    "file_sumber": "03_ros2_package_inventory",
+    "status_bukti": "Kuat",
+    "tabel_disarankan": "daftar package",
+    "gambar_disarankan": "ros2 node list",
+    "catatan": "screenshot terminal"
+  },
+  {
+    "subbab": "2.5 Pembagian Package",
+    "data_pendukung": "7 package",
+    "bentuk_bukti": "tabel package",
+    "file_sumber": "03_ros2_package_inventory",
+    "status_bukti": "Kuat",
+    "tabel_disarankan": "fungsi package",
+    "gambar_disarankan": "diagram dependency",
+    "catatan": "-"
+  },
+  {
+    "subbab": "2.6 STM32/Joystick/Motor/Servo/Encoder",
+    "data_pendukung": "protokol serial",
+    "bentuk_bukti": "tabel protokol",
+    "file_sumber": "06_stm32_serial_communication",
+    "status_bukti": "Kuat",
+    "tabel_disarankan": "format pesan TX/RX",
+    "gambar_disarankan": "foto wiring STM32",
+    "catatan": "video uji manual"
+  },
+  {
+    "subbab": "2.7 RPLIDAR & RealSense",
+    "data_pendukung": "data sensor",
+    "bentuk_bukti": "tabel sensor + scan params",
+    "file_sumber": "02_sensor_raw_data",
+    "status_bukti": "Kuat",
+    "tabel_disarankan": "spec sensor",
+    "gambar_disarankan": "RViz scan + pointcloud",
+    "catatan": "scan params dari data nyata"
+  },
+  {
+    "subbab": "2.8 URDF/TF",
+    "data_pendukung": "link/joint/frame",
+    "bentuk_bukti": "tabel + diagram TF",
+    "file_sumber": "05_robot_model_urdf_xacro",
+    "status_bukti": "Kuat",
+    "tabel_disarankan": "parameter geometri",
+    "gambar_disarankan": "frames_*.pdf (ADA), RViz RobotModel",
+    "catatan": "TF diagram tersedia"
+  },
+  {
+    "subbab": "2.9 Kalibrasi Odometry",
+    "data_pendukung": "uji 5 jarak, regresi",
+    "bentuk_bukti": "tabel + plot",
+    "file_sumber": "07_odometry_calibration",
+    "status_bukti": "Kuat",
+    "tabel_disarankan": "jarak nyata vs odom",
+    "gambar_disarankan": "plot regresi R2",
+    "catatan": "data CSV upload tersedia"
+  },
+  {
+    "subbab": "2.10 Mapping RTAB-Map",
+    "data_pendukung": "pipeline, params",
+    "bentuk_bukti": "tabel param + screenshot",
+    "file_sumber": "08_rtabmap_database_inventory",
+    "status_bukti": "Sedang",
+    "tabel_disarankan": "param mapping",
+    "gambar_disarankan": "rtabmap_viz, graph view",
+    "catatan": "screenshot perlu"
+  },
+  {
+    "subbab": "2.11 Analisis Database",
+    "data_pendukung": "inventaris 24 DB",
+    "bentuk_bukti": "tabel + ringkasan",
+    "file_sumber": "08_rtabmap_database_summary",
+    "status_bukti": "Kuat (di laporan)",
+    "tabel_disarankan": "metrik per DB",
+    "gambar_disarankan": "bar chart node/LC",
+    "catatan": "verifikasi ulang via rtabmap-info"
+  },
+  {
+    "subbab": "2.12 Remapping & Peta Acuan",
+    "data_pendukung": "lab_demo_18jun.db",
+    "bentuk_bukti": "tabel metrik",
+    "file_sumber": "08_rtabmap_database_inventory",
+    "status_bukti": "Sedang",
+    "tabel_disarankan": "peta lama vs bersih",
+    "gambar_disarankan": "loop closure hijau, cloud",
+    "catatan": "screenshot perlu"
+  },
+  {
+    "subbab": "2.13 Localization",
+    "data_pendukung": "params, root cause",
+    "bentuk_bukti": "tabel ambang",
+    "file_sumber": "09_localization_evidence",
+    "status_bukti": "Sedang (bukti runtime kurang)",
+    "tabel_disarankan": "mapping vs localization",
+    "gambar_disarankan": "screenshot localization, log pose",
+    "catatan": "BUKTI RUNTIME perlu"
+  },
+  {
+    "subbab": "2.14 Navigation2",
+    "data_pendukung": "config, 8 gerbang",
+    "bentuk_bukti": "tabel config + kronologi",
+    "file_sumber": "10_nav2_configuration_and_evidence",
+    "status_bukti": "Sedang (bukti runtime kurang)",
+    "tabel_disarankan": "plugin & param",
+    "gambar_disarankan": "RViz path, video navigasi",
+    "catatan": "VIDEO/LOG runtime perlu"
+  },
+  {
+    "subbab": "2.15 Safety/Failover/Kendala",
+    "data_pendukung": "failover, kendala",
+    "bentuk_bukti": "tabel state + kendala",
+    "file_sumber": "12_safety_failover_manual_control",
+    "status_bukti": "Kuat",
+    "tabel_disarankan": "state machine, kendala-solusi",
+    "gambar_disarankan": "marker RViz failover",
+    "catatan": "-"
+  },
+  {
+    "subbab": "2.16 Project Terselesaikan",
+    "data_pendukung": "status capaian",
+    "bentuk_bukti": "tabel ketercapaian",
+    "file_sumber": "00_project_identity",
+    "status_bukti": "Kuat",
+    "tabel_disarankan": "target vs realisasi",
+    "gambar_disarankan": "-",
+    "catatan": "jaga kejujuran teknis"
+  }
+]

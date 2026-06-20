@@ -1,0 +1,82 @@
+[
+  {
+    "metrik": "Total file .db ditemukan",
+    "nilai": 24,
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "metrik": "Total terbaca",
+    "nilai": 22,
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "metrik": "Total rusak/malformed",
+    "nilai": 2,
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "metrik": "Total kosong",
+    "nilai": 3,
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "metrik": "Total valid",
+    "nilai": 19,
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "metrik": "Total mentah node",
+    "nilai": 16317,
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "metrik": "Total mentah keyframe",
+    "nilai": 2500,
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "metrik": "Total mentah link",
+    "nilai": 11500,
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "metrik": "Total mentah loop closure",
+    "nilai": 7675,
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "metrik": "Total dedup node",
+    "nilai": 11739,
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "metrik": "Total dedup keyframe",
+    "nilai": 1798,
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "metrik": "Total dedup link",
+    "nilai": 8539,
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "metrik": "Total dedup loop closure",
+    "nilai": 5413,
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "metrik": "Database terbaik (agregat)",
+    "nilai": "mapping_20260611_MASTER.db",
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "metrik": "Database peta acuan (demo)",
+    "nilai": "lab_demo_18jun.db",
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "metrik": "DB tidak layak bukti utama",
+    "nilai": "test.db, lab_final_malam_ini.db, lab_remap3_223920.db (near-static)",
+    "sumber": "Catatan/progress (perlu validasi sumber)"
+  }
+]

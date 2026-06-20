@@ -1,0 +1,16 @@
+# 11 — Data Ackermann Steering
+
+Parameter & rumus kemudi Ackermann, terverifikasi dari URDF & bridge.
+
+| item | nilai | bukti | status |
+|---|---|---|---|
+| Wheelbase | 0.500 m | src/amr_description/urdf/amr_description.urdf.xacro | Terverifikasi dari file |
+| Track width | 0.400 m | src/amr_description/urdf/amr_description.urdf.xacro | Terverifikasi dari file |
+| Wheel radius | 0.0775 m | src/amr_description/urdf/amr_description.urdf.xacro | Terverifikasi dari file |
+| Steering limit | ±45 deg (STEER_TRIM -5) | src/amr_controller/src/stm32_bridge.cpp | Terverifikasi dari file |
+| Min turning radius | 0.90 m (Nav2) | src/amr_slam/config/nav2_params.yaml | Terverifikasi dari file |
+| Konversi Twist->steer | steer = -atan(wheelbase*angular.z/linear.x) | src/amr_controller/src/stm32_bridge.cpp | Terverifikasi dari file |
+| Hubungan v & w | delta = atan(L*w/v); v dari linear.x, w dari angular.z | src/amr_controller/src/stm32_bridge.cpp | Terverifikasi dari file |
+| Masalah arah kemudi | angular.z kiri -> roda belok kanan (kebalik) | bench test 20-Jun | Catatan/progress (perlu validasi sumber) |
+| Solusi negasi | steer_rad = -atan(...) (commit fec1ee5) | src/amr_controller/src/stm32_bridge.cpp | Terverifikasi dari file |
+| Keterbatasan Nav2 | tak bisa rotate-in-place (use_rotate_to_heading=false); butuh ruang manuver | src/amr_slam/config/nav2_params.yaml | Terverifikasi dari file |

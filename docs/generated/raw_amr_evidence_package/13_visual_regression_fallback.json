@@ -1,0 +1,68 @@
+[
+  {
+    "item": "Pendekatan",
+    "nilai": "RandomForestRegressor (scikit-learn), tanpa CNN",
+    "bukti": "src/amr_visual_regression/amr_visual_regression/vr_inference_node.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Pipeline",
+    "nilai": "data_collector -> train.py (offline) -> vr_inference",
+    "bukti": "src/amr_visual_regression/amr_visual_regression/vr_inference_node.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Input",
+    "nilai": "depth image ROI (top 200, bottom 360), num_regions=9",
+    "bukti": "src/amr_visual_regression/amr_visual_regression/vr_inference_node.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Statistik depth",
+    "nilai": "fitur per region (modul feature_extractor)",
+    "bukti": "src/amr_visual_regression/amr_visual_regression/feature_extractor.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Output",
+    "nilai": "/cmd_vel_visual (linear.x + angular.z)",
+    "bukti": "src/amr_visual_regression/amr_visual_regression/vr_inference_node.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Safety",
+    "nilai": "min_depth < 0.4 m -> velocity=0",
+    "bukti": "src/amr_visual_regression/amr_visual_regression/vr_inference_node.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Param gerak",
+    "nilai": "vx_max 0.4; steer_max 0.785 rad",
+    "bukti": "src/amr_visual_regression/amr_visual_regression/vr_inference_node.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "LiDAR line segments",
+    "nilai": "Split-and-Merge + RANSAC; /amr/line_segments",
+    "bukti": "src/amr_visual_regression/amr_visual_regression/lidar_line_segments_node.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Alasan line segments",
+    "nilai": "kritik dosen: dinding = entitas utuh, bukan titik diskrit",
+    "bukti": "src/amr_visual_regression/amr_visual_regression/lidar_line_segments_node.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Hubungan failover",
+    "nilai": "sumber state VISUAL_FALLBACK",
+    "bukti": "src/amr_failover/amr_failover/failover_controller.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Status implementasi",
+    "nilai": "Node ada; model .pkl perlu training; runtime perlu validasi",
+    "bukti": "src/amr_visual_regression/amr_visual_regression/vr_inference_node.py",
+    "status": "Catatan/progress (perlu validasi sumber)"
+  }
+]

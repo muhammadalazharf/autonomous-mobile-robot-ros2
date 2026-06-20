@@ -1,0 +1,74 @@
+[
+  {
+    "item": "Joystick",
+    "nilai": "PS4/PS5; axis_linear=1, axis_angular=3",
+    "bukti": "src/amr_bringup/config/joy_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Deadman button",
+    "nilai": "R1 (index 5); wajib untuk gerak manual",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Emergency stop (software)",
+    "nilai": "min /scan < 0.30 m -> cmd_vel (0,0)",
+    "bukti": "src/amr_failover/amr_failover/failover_controller.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Emergency stop (fisik)",
+    "nilai": "PERLU_KONFIRMASI",
+    "bukti": "-",
+    "status": "Tidak ditemukan di repo/file saat ini"
+  },
+  {
+    "item": "autonomous_enabled",
+    "nilai": "default false; set true runtime (gerbang ke-8)",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Failover states",
+    "nilai": "SLAM_ACTIVE / VISUAL_FALLBACK / JOY_OVERRIDE / EMERGENCY_STOP",
+    "bukti": "src/amr_failover/amr_failover/failover_controller.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Trigger fallback",
+    "nilai": "SLAM unhealthy >=2s -> VISUAL; recovery 5s histeresis",
+    "bukti": "src/amr_failover/amr_failover/failover_controller.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Sumber gerak",
+    "nilai": "Nav2(/cmd_vel_nav), VR(/cmd_vel_visual), joy(/cmd_vel_joy), e-stop(0)",
+    "bukti": "src/amr_failover/amr_failover/failover_controller.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "PWM ramping",
+    "nilai": "MAX_PWM_STEP=400/call; e-stop bypass",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Brownout issue",
+    "nilai": "inrush PG45 -> NUC voltage sag (SSH freeze, RealSense timeout)",
+    "bukti": "progress 15-Jun",
+    "status": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "item": "Watchdog",
+    "nilai": "cmd_vel timeout 500 ms -> stop",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Status failover saat demo",
+    "nilai": "DIBYPASS (Nav2 -> /cmd_vel langsung); R1 rem manual",
+    "bukti": "src/amr_slam/launch/nav2.launch.py",
+    "status": "Terverifikasi dari file"
+  }
+]

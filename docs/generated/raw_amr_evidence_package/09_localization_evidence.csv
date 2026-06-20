@@ -1,0 +1,13 @@
+aspek,nilai,kategori,bukti,status
+Launch localization,rtabmap_localization.launch.py,terverifikasi,src/amr_3d_mapping/launch/rtabmap_localization.launch.py,Terverifikasi dari file
+Config localization,rtabmap_localization.yaml,terverifikasi,src/amr_3d_mapping/config/rtabmap_localization.yaml,Terverifikasi dari file
+Database dipakai,lab_demo_18jun.db,progress,SOP/handover,Catatan/progress (perlu validasi sumber)
+Mode,Mem/IncrementalMemory=false; InitWMWithAllNodes=true,terverifikasi,src/amr_3d_mapping/config/rtabmap_localization.yaml,Terverifikasi dari file
+LoopThr,0.05 (disamakan dgn mapping),terverifikasi,src/amr_3d_mapping/config/rtabmap_localization.yaml,Terverifikasi dari file
+Vis/MinInliers,8,terverifikasi,src/amr_3d_mapping/config/rtabmap_localization.yaml,Terverifikasi dari file
+DetectionRate,2.0 Hz,terverifikasi,src/amr_3d_mapping/config/rtabmap_localization.yaml,Terverifikasi dari file
+Masalah: loop rejection,config localization lebih ketat dari mapping,progress,docs/root_cause_analysis_nav_lokalisasi.md,Terverifikasi dari file
+Solusi,samakan ambang localization = mapping,terverifikasi,src/amr_3d_mapping/config/rtabmap_localization.yaml,Terverifikasi dari file
+Topic /localization_pose,tidak dikonfigurasi eksplisit,kurang,-,Tidak ditemukan di repo/file saat ini
+Bukti keberhasilan,loop closure hijau (handover 18-Jun),progress,handover,Catatan/progress (perlu validasi sumber)
+Bukti yang kurang,"screenshot/log /localization_pose, RMSE vs ground truth",kurang,-,Tidak ditemukan di repo/file saat ini

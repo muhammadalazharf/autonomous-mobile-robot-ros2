@@ -1,0 +1,6 @@
+percobaan,jarak_aktual_cm,jarak_odom_m,odom_cm,rasio_real_per_odom,catatan
+1,22,0.5,50,0.44,uji odom-vs-meteran 14-Jun
+2,41,1.0,100,0.41,uji odom-vs-meteran 14-Jun
+3,61,1.5,150,0.4067,uji odom-vs-meteran 14-Jun
+4,81,2.0,200,0.405,uji odom-vs-meteran 14-Jun
+5,96,2.5,250,0.384,uji odom-vs-meteran 14-Jun

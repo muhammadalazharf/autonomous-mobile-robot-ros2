@@ -1,0 +1,93 @@
+[
+  {
+    "package": "amr_description",
+    "fungsi": "Model URDF/Xacro + TF",
+    "node_file": "robot_state_publisher",
+    "launch": "view_robot.launch.py",
+    "config": "urdf/*.xacro",
+    "publish": "/robot_description, /tf_static",
+    "subscribe": "-",
+    "service_action": "-",
+    "relasi": "dipakai amr_bringup",
+    "bukti": "src/amr_description/urdf/amr_description.urdf.xacro",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "package": "amr_controller",
+    "fungsi": "Bridge HW + odometry + IMU merge",
+    "node_file": "stm32_bridge.cpp, odometry_publisher.py, imu_merger_node.py",
+    "launch": "(via amr_launch.py)",
+    "config": "-",
+    "publish": "/encoder, /odom, /imu/data, /tf",
+    "subscribe": "/cmd_vel, /joy",
+    "service_action": "-",
+    "relasi": "input ke RTAB-Map/Nav2",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "package": "amr_bringup",
+    "fungsi": "Orkestrasi launch + sensor + joy",
+    "node_file": "joy_node, teleop",
+    "launch": "amr_full/sensors/amr_launch.py",
+    "config": "joy_params.yaml",
+    "publish": "/scan, /camera/*, /joy",
+    "subscribe": "-",
+    "service_action": "-",
+    "relasi": "master launch semua",
+    "bukti": "src/amr_bringup/launch/amr_full.launch.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "package": "amr_3d_mapping",
+    "fungsi": "SLAM 3D RTAB-Map + VIO",
+    "node_file": "rtabmap, rgbd_odometry, rgbd_sync",
+    "launch": "rtabmap_mapping/localization/vio_only.launch.py",
+    "config": "rtabmap_mapping.yaml, rtabmap_localization.yaml",
+    "publish": "/map, /cloud_map, /tf(map->odom)",
+    "subscribe": "/rgbd_image, /scan, /imu/data",
+    "service_action": "rtabmap services",
+    "relasi": "peta untuk Nav2",
+    "bukti": "src/amr_3d_mapping/config/rtabmap_mapping.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "package": "amr_slam",
+    "fungsi": "SLAM Toolbox 2D + Nav2 config",
+    "node_file": "slam_toolbox, nav2 lifecycle nodes",
+    "launch": "nav2.launch.py, slam_mapping/localization.launch.py",
+    "config": "nav2_params.yaml, slam_mapping.yaml",
+    "publish": "/cmd_vel, /plan, /global_costmap, /local_costmap",
+    "subscribe": "/scan, /odom, /map",
+    "service_action": "/navigate_to_pose (action)",
+    "relasi": "konsumen peta RTAB-Map",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "package": "amr_visual_regression",
+    "fungsi": "Fallback depth-regression + line segments",
+    "node_file": "vr_inference, data_collector, lidar_line_segments, feature_extractor",
+    "launch": "vr_inference/line_segments/collect_dataset.launch.py",
+    "config": "model .pkl (offline)",
+    "publish": "/cmd_vel_visual, /amr/line_segments",
+    "subscribe": "/camera/depth/*, /scan",
+    "service_action": "-",
+    "relasi": "sumber VISUAL_FALLBACK failover",
+    "bukti": "src/amr_visual_regression/amr_visual_regression/vr_inference_node.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "package": "amr_failover",
+    "fungsi": "Arbiter cmd_vel (state machine)",
+    "node_file": "failover_controller.py",
+    "launch": "failover.launch.py",
+    "config": "param node",
+    "publish": "/cmd_vel, /failover_status, /failover_marker",
+    "subscribe": "/cmd_vel_nav, /cmd_vel_visual, /cmd_vel_joy, /scan, /map, /joy",
+    "service_action": "-",
+    "relasi": "arbiter semua sumber gerak",
+    "bukti": "src/amr_failover/amr_failover/failover_controller.py",
+    "status": "Terverifikasi dari file"
+  }
+]

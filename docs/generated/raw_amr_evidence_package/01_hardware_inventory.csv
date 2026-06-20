@@ -1,0 +1,19 @@
+komponen,jenis,fungsi,data,topic,package_node,bukti,status
+Intel NUC 13 i7 (NUC13ANHi7),Komputer onboard,Pusat komputasi perception/mapping/navigation/ROS2,Menjalankan seluruh node ROS2,-,semua,src/amr_bringup/launch/amr_full.launch.py,Catatan/progress (perlu validasi sumber)
+STM32F407,Mikrokontroler,"Kendali motor + servo, baca encoder, jembatan serial","TX V:{pwm},S:{sudut}; RX E:{delta}","/encoder, /cmd_vel, /joy",amr_controller/stm32_bridge,src/amr_controller/src/stm32_bridge.cpp,Terverifikasi dari file
+RPLIDAR C1,Sensor LiDAR 2D 360,"Scan jarak planar, obstacle, costmap, scan-matching","LaserScan (~720 titik, ~10 Hz)",/scan,rplidar_ros/rplidar_node,src/amr_bringup/launch/sensors_launch.py,Terverifikasi dari file
+Intel RealSense D455,Kamera RGB-D + IMU,RGB+Depth untuk RTAB-Map/VIO; IMU gravity,"RGB 848x480x30, Depth 848x480x30, accel+gyro","/camera/camera/color/*, /aligned_depth_to_color/*, /accel,/gyro",realsense2_camera,src/amr_bringup/launch/sensors_launch.py,Terverifikasi dari file
+IMU (BMI055 internal D455),IMU 6-DoF,Gravity constraint + prediksi gerak VIO,accel + gyro,"/camera/camera/accel/sample, /gyro/sample -> /imu/data",amr_controller/imu_merger,src/amr_controller/scripts/imu_merger_node.py,Terverifikasi dari file
+Accelerometer (BMI055),Bagian IMU,Linear acceleration untuk fusi,linear_acceleration,/camera/camera/accel/sample,amr_controller/imu_merger,src/amr_controller/scripts/imu_merger_node.py,Terverifikasi dari file
+Gyroscope (BMI055),Bagian IMU,Angular velocity (vyaw) untuk fusi,angular_velocity,/camera/camera/gyro/sample,amr_controller/imu_merger,src/amr_controller/scripts/imu_merger_node.py,Terverifikasi dari file
+Encoder (pada PG45),Rotary encoder,Umpan balik gerak untuk odometry,delta ticks (PPR efektif 3858),/encoder,amr_controller/odometry_publisher,src/amr_controller/scripts/odometry_publisher.py,Terverifikasi dari file
+Motor PG45,DC gear motor + encoder,Penggerak 4WD (1 motor + 2 diferensial + shaft),PWM dari STM32,via /cmd_vel -> bridge,amr_controller/stm32_bridge,src/amr_description/urdf/amr_description.urdf.xacro,Terverifikasi dari file
+Driver motor BTS7960,H-bridge driver,Antarmuka daya STM32 ke motor,PWM + arah,-,STM32 (firmware),-,Catatan/progress (perlu validasi sumber) (disebut di rancangan; tak ada di repo)
+Servo kemudi DSSERVO D25,Servo,Kemudi Ackermann 2 roda depan (±45),sudut S dari STM32,via /cmd_vel -> bridge,amr_controller/stm32_bridge,src/amr_controller/src/stm32_bridge.cpp,Terverifikasi dari file
+Baterai LiPo Ovonic 5300 mAh 6S,Catu daya,Suplai NUC/STM32/motor/sensor (jaga >22 V),tegangan,-,-,-,Catatan/progress (perlu validasi sumber) (dari laporan/progress)
+Buck converter,Konverter tegangan,Step-down tegangan ke subsistem,-,-,-,-,Tidak ditemukan di repo/file saat ini
+Power management module,Manajemen daya,Distribusi daya,-,-,-,-,Tidak ditemukan di repo/file saat ini
+Emergency stop,Keselamatan,Hentikan robot darurat,-,(software: EMERGENCY_STOP state),amr_failover,src/amr_failover/amr_failover/failover_controller.py,Catatan/progress (perlu validasi sumber) (e-stop SOFTWARE ada; e-stop FISIK perlu validasi)
+Push button,Input keselamatan,PERLU_KONFIRMASI,-,-,-,-,Tidak ditemukan di repo/file saat ini
+Joystick PS4/PS5,Kontroler manual,Teleop manual + deadman R1,axes + buttons,/joy,joy_node + stm32_bridge,src/amr_bringup/config/joy_params.yaml,Terverifikasi dari file
+GNSS/GPS U-Blox,Posisi global,DICOPOT (indoor only),-,-,-,src/amr_bringup/launch/sensors_launch.py,Terverifikasi dari file (dinyatakan dicopot di sensors_launch.py)

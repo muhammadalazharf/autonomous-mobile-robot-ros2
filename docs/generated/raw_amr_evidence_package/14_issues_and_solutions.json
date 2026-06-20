@@ -1,0 +1,156 @@
+[
+  {
+    "kategori": "Power",
+    "kendala": "Brownout saat motor start",
+    "gejala": "SSH freeze, RealSense timeout",
+    "penyebab": "inrush PG45 -> voltage sag NUC",
+    "dampak": "sistem freeze saat akselerasi",
+    "solusi": "PWM ramping (400/call), e-stop bypass",
+    "status_akhir": "Selesai",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "tindak_lanjut": "tidak"
+  },
+  {
+    "kategori": "Odometry",
+    "kendala": "Over-report 2.58x",
+    "gejala": "jarak odom > nyata",
+    "penyebab": "PPR teoretis salah",
+    "dampak": "estimasi posisi meleset",
+    "solusi": "kalibrasi PPR -> 3858 (R2=0.998)",
+    "status_akhir": "Selesai",
+    "bukti": "src/amr_bringup/launch/amr_full.launch.py",
+    "tindak_lanjut": "tidak"
+  },
+  {
+    "kategori": "Sensor/VIO",
+    "kendala": "VIO drift area minim tekstur",
+    "gejala": "3D cloud ghosting",
+    "penyebab": "pencahayaan & low-texture",
+    "dampak": "peta menjalar",
+    "solusi": "tuning exposure, re-mapping bersih, gravity constraint",
+    "status_akhir": "Mitigasi",
+    "bukti": "src/amr_bringup/launch/sensors_launch.py",
+    "tindak_lanjut": "ya (lighting)"
+  },
+  {
+    "kategori": "Mapping",
+    "kendala": "Database kacau (duplikat/korup/near-static)",
+    "gejala": "24 DB, 2 rusak, 3 kosong, banyak duplikat",
+    "penyebab": "sesi terputus + backup manual",
+    "dampak": "agregat membengkak",
+    "solusi": "re-mapping bersih lab_demo_18jun.db; SOP penamaan",
+    "status_akhir": "Selesai",
+    "bukti": "docs/SOP_MAPPING_DAN_AUTONOMOUS.md",
+    "tindak_lanjut": "tidak"
+  },
+  {
+    "kategori": "Localization",
+    "kendala": "Loop rejection",
+    "gejala": "robot tak lock ke peta",
+    "penyebab": "ambang localization > mapping",
+    "dampak": "lokalisasi gagal",
+    "solusi": "samakan ambang (LoopThr 0.05, MinInliers 8, dst)",
+    "status_akhir": "Selesai",
+    "bukti": "src/amr_3d_mapping/config/rtabmap_localization.yaml",
+    "tindak_lanjut": "ya (bukti runtime)"
+  },
+  {
+    "kategori": "Nav2/plugin",
+    "kendala": "VoxelLayer does not exist",
+    "gejala": "plugin gagal load",
+    "penyebab": "format :: vs / campur",
+    "dampak": "bringup gagal",
+    "solusi": "seragamkan format per package",
+    "status_akhir": "Selesai",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "tindak_lanjut": "tidak"
+  },
+  {
+    "kategori": "Nav2/BT",
+    "kendala": "RemovePassedGoals already registered",
+    "gejala": "crash startup",
+    "penyebab": "plugin_lib_names eksplisit -> registrasi ganda",
+    "dampak": "Nav2 crash",
+    "solusi": "hapus blok plugin_lib_names (auto-load)",
+    "status_akhir": "Selesai",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "tindak_lanjut": "tidak"
+  },
+  {
+    "kategori": "Nav2/BT",
+    "kendala": "Action server spin not available",
+    "gejala": "BT gagal",
+    "penyebab": "spin tak terdaftar",
+    "dampak": "navigasi gagal",
+    "solusi": "daftarkan nav2_behaviors/Spin",
+    "status_akhir": "Selesai",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "tindak_lanjut": "tidak"
+  },
+  {
+    "kategori": "Nav2/BT",
+    "kendala": "Couldn't open input XML file",
+    "gejala": "bt_navigator crash",
+    "penyebab": "path BT XML bukan absolut",
+    "dampak": "navigasi gagal",
+    "solusi": "path absolut BT XML",
+    "status_akhir": "Selesai",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "tindak_lanjut": "tidak"
+  },
+  {
+    "kategori": "Nav2/costmap",
+    "kendala": "collision ahead / lethal",
+    "gejala": "planner no path",
+    "penyebab": "depth_scan baca lantai = obstacle hantu",
+    "dampak": "robot tak bisa jalan",
+    "solusi": "matikan depth_scan; radius 0.28; inflation 0.25",
+    "status_akhir": "Selesai",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "tindak_lanjut": "ya (kalibrasi depth)"
+  },
+  {
+    "kategori": "Nav2/topic",
+    "kendala": "Nav2 kirim cmd_vel tapi diam",
+    "gejala": "Failed to make progress",
+    "penyebab": "remap /cmd_vel->/cmd_vel_nav",
+    "dampak": "robot diam",
+    "solusi": "hapus remap (mode demo)",
+    "status_akhir": "Selesai",
+    "bukti": "src/amr_slam/launch/nav2.launch.py",
+    "tindak_lanjut": "ya (failover)"
+  },
+  {
+    "kategori": "Safety gate",
+    "kendala": "Robot diam walau cmd_vel!=0",
+    "gejala": "tak gerak",
+    "penyebab": "autonomous_enabled default false",
+    "dampak": "demo terblok",
+    "solusi": "set true runtime",
+    "status_akhir": "Selesai (runtime)",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "tindak_lanjut": "tidak"
+  },
+  {
+    "kategori": "Steering",
+    "kendala": "Arah kemudi otonom terbalik",
+    "gejala": "kiri -> kanan",
+    "penyebab": "tanda kemudi terbalik (bench test)",
+    "dampak": "navigasi salah arah",
+    "solusi": "negasi steer_rad",
+    "status_akhir": "Diterapkan; verifikasi HW",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "tindak_lanjut": "ya (tes di robot)"
+  },
+  {
+    "kategori": "Dokumentasi",
+    "kendala": "Progress tak tercatat di laporan",
+    "gejala": "laporan ketinggalan",
+    "penyebab": "iterasi cepat",
+    "dampak": "klaim kurang bukti",
+    "solusi": "suplemen + bank data + evidence package",
+    "status_akhir": "Selesai",
+    "bukti": "docs/",
+    "tindak_lanjut": "ya (bukti runtime)"
+  }
+]

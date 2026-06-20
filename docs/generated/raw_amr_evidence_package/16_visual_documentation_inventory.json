@@ -1,0 +1,137 @@
+[
+  {
+    "nama_file": "frames_2026-06-09_22.08.25.pdf",
+    "path": "frames_2026-06-09_22.08.25.pdf",
+    "jenis": "Diagram TF (view_frames)",
+    "isi": "TF tree robot (frames)",
+    "subbab_cocok": "2.8 URDF/TF",
+    "caption": "TF tree hasil view_frames",
+    "status": "Terverifikasi dari file (ADA di repo)"
+  },
+  {
+    "nama_file": "frames_2026-06-09_22.09.38.pdf",
+    "path": "frames_2026-06-09_22.09.38.pdf",
+    "jenis": "Diagram TF (view_frames)",
+    "isi": "TF tree robot (frames)",
+    "subbab_cocok": "2.8 URDF/TF",
+    "caption": "TF tree hasil view_frames",
+    "status": "Terverifikasi dari file (ADA di repo)"
+  },
+  {
+    "nama_file": "frames_2026-06-09_22.08.25.gv",
+    "path": "frames_2026-06-09_22.08.25.gv",
+    "jenis": "Diagram TF (view_frames)",
+    "isi": "TF tree robot (frames)",
+    "subbab_cocok": "2.8 URDF/TF",
+    "caption": "TF tree hasil view_frames",
+    "status": "Terverifikasi dari file (ADA di repo)"
+  },
+  {
+    "nama_file": "frames_2026-06-09_22.09.38.gv",
+    "path": "frames_2026-06-09_22.09.38.gv",
+    "jenis": "Diagram TF (view_frames)",
+    "isi": "TF tree robot (frames)",
+    "subbab_cocok": "2.8 URDF/TF",
+    "caption": "TF tree hasil view_frames",
+    "status": "Terverifikasi dari file (ADA di repo)"
+  },
+  {
+    "nama_file": "diagram Mermaid frame-to-map",
+    "path": "docs/LAPORAN_KORELASI_PENGOLAHAN_CITRA_DIGITAL.md",
+    "jenis": "Diagram alir",
+    "isi": "alur frame-to-map",
+    "subbab_cocok": "2.10 Mapping",
+    "caption": "Alur pipeline frame-to-map",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "nama_file": "Foto robot terakit",
+    "path": "-",
+    "jenis": "(belum ada)",
+    "isi": "Foto AMR 4WD Ackermann",
+    "subbab_cocok": "2.3 Perakitan",
+    "caption": "Foto AMR 4WD Ackermann",
+    "status": "Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual)"
+  },
+  {
+    "nama_file": "Wiring diagram",
+    "path": "-",
+    "jenis": "(belum ada)",
+    "isi": "Skema kelistrikan",
+    "subbab_cocok": "2.2/2.6 Hardware",
+    "caption": "Skema kelistrikan",
+    "status": "Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual)"
+  },
+  {
+    "nama_file": "Arsitektur sistem",
+    "path": "-",
+    "jenis": "(belum ada)",
+    "isi": "Diagram blok berlapis",
+    "subbab_cocok": "2.1/3.1",
+    "caption": "Diagram blok berlapis",
+    "status": "Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual)"
+  },
+  {
+    "nama_file": "Screenshot RViz /scan + pointcloud",
+    "path": "-",
+    "jenis": "(belum ada)",
+    "isi": "Validasi sensor",
+    "subbab_cocok": "2.7 Sensor",
+    "caption": "Validasi sensor",
+    "status": "Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual)"
+  },
+  {
+    "nama_file": "Screenshot rtabmap_viz / graph view",
+    "path": "-",
+    "jenis": "(belum ada)",
+    "isi": "Pose graph",
+    "subbab_cocok": "2.10/2.11 Mapping",
+    "caption": "Pose graph",
+    "status": "Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual)"
+  },
+  {
+    "nama_file": "Screenshot loop closure hijau",
+    "path": "-",
+    "jenis": "(belum ada)",
+    "isi": "Bukti lokalisasi",
+    "subbab_cocok": "2.12/2.13",
+    "caption": "Bukti lokalisasi",
+    "status": "Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual)"
+  },
+  {
+    "nama_file": "Screenshot RViz global/local plan",
+    "path": "-",
+    "jenis": "(belum ada)",
+    "isi": "Bukti navigasi",
+    "subbab_cocok": "2.14 Nav2",
+    "caption": "Bukti navigasi",
+    "status": "Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual)"
+  },
+  {
+    "nama_file": "Video robot bergerak otonom",
+    "path": "-",
+    "jenis": "(belum ada)",
+    "isi": "Bukti runtime navigasi",
+    "subbab_cocok": "2.14 Nav2",
+    "caption": "Bukti runtime navigasi",
+    "status": "Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual)"
+  },
+  {
+    "nama_file": "Plot trajektori (x-y)",
+    "path": "-",
+    "jenis": "(belum ada)",
+    "isi": "Lintasan mapping",
+    "subbab_cocok": "2.11 Analisis DB",
+    "caption": "Lintasan mapping",
+    "status": "Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual)"
+  },
+  {
+    "nama_file": "Plot regresi odometry R2",
+    "path": "-",
+    "jenis": "(belum ada)",
+    "isi": "Real vs odom",
+    "subbab_cocok": "2.9 Kalibrasi",
+    "caption": "Real vs odom",
+    "status": "Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual)"
+  }
+]

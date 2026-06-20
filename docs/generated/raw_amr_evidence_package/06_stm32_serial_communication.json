@@ -1,0 +1,80 @@
+[
+  {
+    "item": "Port serial",
+    "nilai": "/dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_206833894152-if00",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Baudrate",
+    "nilai": "115200 (B115200)",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Format TX (NUC->STM32)",
+    "nilai": "V:{pwm},S:{sudut}\\n",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Format RX (STM32->NUC)",
+    "nilai": "E:{delta}\\n",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Perintah motor (PWM)",
+    "nilai": "MAX_PWM=4000; negatif=mundur",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Perintah servo",
+    "nilai": "MAX_STEER=45 deg; STEER_TRIM=-5",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Data encoder",
+    "nilai": "E:{delta} -> /encoder (Int32); auto-detect cumulative/delta",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "PWM ramping",
+    "nilai": "MAX_PWM_STEP=400/call; e-stop bypass",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Safety gate",
+    "nilai": "autonomous_enabled (default false)",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Deadman",
+    "nilai": "R1 (button index 5); manual override",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Watchdog",
+    "nilai": "cmd_vel timeout 500 ms -> motor stop",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Konversi Ackermann",
+    "nilai": "steer = -atan(WHEELBASE*w/v) (negasi fix 20-Jun)",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "item": "Konvensi arah",
+    "nilai": "V positif=maju (kabel motor ditukar fisik)",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  }
+]

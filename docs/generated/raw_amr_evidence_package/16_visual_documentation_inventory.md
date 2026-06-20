@@ -1,0 +1,21 @@
+# 16 — Inventaris Dokumentasi Visual
+
+Visual yang ADA di repo (diagram TF) + checklist visual yang masih perlu dibuat/diambil manual.
+
+| nama_file | path | jenis | isi | subbab_cocok | caption | status |
+|---|---|---|---|---|---|---|
+| frames_2026-06-09_22.08.25.pdf | frames_2026-06-09_22.08.25.pdf | Diagram TF (view_frames) | TF tree robot (frames) | 2.8 URDF/TF | TF tree hasil view_frames | Terverifikasi dari file (ADA di repo) |
+| frames_2026-06-09_22.09.38.pdf | frames_2026-06-09_22.09.38.pdf | Diagram TF (view_frames) | TF tree robot (frames) | 2.8 URDF/TF | TF tree hasil view_frames | Terverifikasi dari file (ADA di repo) |
+| frames_2026-06-09_22.08.25.gv | frames_2026-06-09_22.08.25.gv | Diagram TF (view_frames) | TF tree robot (frames) | 2.8 URDF/TF | TF tree hasil view_frames | Terverifikasi dari file (ADA di repo) |
+| frames_2026-06-09_22.09.38.gv | frames_2026-06-09_22.09.38.gv | Diagram TF (view_frames) | TF tree robot (frames) | 2.8 URDF/TF | TF tree hasil view_frames | Terverifikasi dari file (ADA di repo) |
+| diagram Mermaid frame-to-map | docs/LAPORAN_KORELASI_PENGOLAHAN_CITRA_DIGITAL.md | Diagram alir | alur frame-to-map | 2.10 Mapping | Alur pipeline frame-to-map | Terverifikasi dari file |
+| Foto robot terakit | - | (belum ada) | Foto AMR 4WD Ackermann | 2.3 Perakitan | Foto AMR 4WD Ackermann | Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual) |
+| Wiring diagram | - | (belum ada) | Skema kelistrikan | 2.2/2.6 Hardware | Skema kelistrikan | Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual) |
+| Arsitektur sistem | - | (belum ada) | Diagram blok berlapis | 2.1/3.1 | Diagram blok berlapis | Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual) |
+| Screenshot RViz /scan + pointcloud | - | (belum ada) | Validasi sensor | 2.7 Sensor | Validasi sensor | Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual) |
+| Screenshot rtabmap_viz / graph view | - | (belum ada) | Pose graph | 2.10/2.11 Mapping | Pose graph | Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual) |
+| Screenshot loop closure hijau | - | (belum ada) | Bukti lokalisasi | 2.12/2.13 | Bukti lokalisasi | Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual) |
+| Screenshot RViz global/local plan | - | (belum ada) | Bukti navigasi | 2.14 Nav2 | Bukti navigasi | Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual) |
+| Video robot bergerak otonom | - | (belum ada) | Bukti runtime navigasi | 2.14 Nav2 | Bukti runtime navigasi | Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual) |
+| Plot trajektori (x-y) | - | (belum ada) | Lintasan mapping | 2.11 Analisis DB | Lintasan mapping | Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual) |
+| Plot regresi odometry R2 | - | (belum ada) | Real vs odom | 2.9 Kalibrasi | Real vs odom | Tidak ditemukan di repo/file saat ini (perlu dibuat/screenshot manual) |

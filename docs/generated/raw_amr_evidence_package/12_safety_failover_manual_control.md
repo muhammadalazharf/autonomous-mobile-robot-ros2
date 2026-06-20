@@ -1,0 +1,18 @@
+# 12 — Safety, Failover & Manual Control
+
+Mekanisme keselamatan & arbitrasi, terverifikasi dari failover & bridge.
+
+| item | nilai | bukti | status |
+|---|---|---|---|
+| Joystick | PS4/PS5; axis_linear=1, axis_angular=3 | src/amr_bringup/config/joy_params.yaml | Terverifikasi dari file |
+| Deadman button | R1 (index 5); wajib untuk gerak manual | src/amr_controller/src/stm32_bridge.cpp | Terverifikasi dari file |
+| Emergency stop (software) | min /scan < 0.30 m -> cmd_vel (0,0) | src/amr_failover/amr_failover/failover_controller.py | Terverifikasi dari file |
+| Emergency stop (fisik) | PERLU_KONFIRMASI | - | Tidak ditemukan di repo/file saat ini |
+| autonomous_enabled | default false; set true runtime (gerbang ke-8) | src/amr_controller/src/stm32_bridge.cpp | Terverifikasi dari file |
+| Failover states | SLAM_ACTIVE / VISUAL_FALLBACK / JOY_OVERRIDE / EMERGENCY_STOP | src/amr_failover/amr_failover/failover_controller.py | Terverifikasi dari file |
+| Trigger fallback | SLAM unhealthy >=2s -> VISUAL; recovery 5s histeresis | src/amr_failover/amr_failover/failover_controller.py | Terverifikasi dari file |
+| Sumber gerak | Nav2(/cmd_vel_nav), VR(/cmd_vel_visual), joy(/cmd_vel_joy), e-stop(0) | src/amr_failover/amr_failover/failover_controller.py | Terverifikasi dari file |
+| PWM ramping | MAX_PWM_STEP=400/call; e-stop bypass | src/amr_controller/src/stm32_bridge.cpp | Terverifikasi dari file |
+| Brownout issue | inrush PG45 -> NUC voltage sag (SSH freeze, RealSense timeout) | progress 15-Jun | Catatan/progress (perlu validasi sumber) |
+| Watchdog | cmd_vel timeout 500 ms -> stop | src/amr_controller/src/stm32_bridge.cpp | Terverifikasi dari file |
+| Status failover saat demo | DIBYPASS (Nav2 -> /cmd_vel langsung); R1 rem manual | src/amr_slam/launch/nav2.launch.py | Terverifikasi dari file |

@@ -1,0 +1,122 @@
+[
+  {
+    "aspek": "Config",
+    "nilai": "nav2_params.yaml",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Launch",
+    "nilai": "nav2.launch.py (remap dihapus, mode demo)",
+    "bukti": "src/amr_slam/launch/nav2.launch.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Planner",
+    "nilai": "nav2_smac_planner/SmacPlannerHybrid (DUBIN)",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "min_turning_radius",
+    "nilai": "0.90 m; reverse_penalty 2.0",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Controller",
+    "nilai": "RegulatedPurePursuitController (desired_linear_vel 0.3)",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Global costmap",
+    "nilai": "static + obstacle + inflation; obs scan saja",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Local costmap",
+    "nilai": "4x4 rolling; voxel + inflation",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Inflation layer",
+    "nilai": "inflation_radius 0.25; cost_scaling 3.0",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Voxel/Obstacle layer",
+    "nilai": "nav2_costmap_2d::{Voxel,Obstacle}Layer",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "robot_radius",
+    "nilai": "0.28 (dari 0.35)",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "depth_scan di costmap",
+    "nilai": "DIMATIKAN (obstacle hantu lantai)",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Behavior tree XML",
+    "nilai": "path absolut navigate_to_pose_w_replanning_and_recovery.xml",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Recovery behaviors",
+    "nilai": "spin, backup, drive_on_heading, wait",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Smoother",
+    "nilai": "nav2_smoother::SimpleSmoother",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Format plugin",
+    "nilai": ":: (costmap/controller/smoother/waypoint), / (smac/behaviors)",
+    "bukti": "src/amr_slam/config/nav2_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Topic cmd_vel",
+    "nilai": "/cmd_vel (remap dihapus, mode demo)",
+    "bukti": "src/amr_slam/launch/nav2.launch.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Action",
+    "nilai": "/navigate_to_pose (nav2_msgs/NavigateToPose)",
+    "bukti": "src/amr_slam/launch/nav2.launch.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Status pengujian",
+    "nilai": "Robot bergerak otonom (mode demo, 19-Jun)",
+    "bukti": "handover",
+    "status": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "aspek": "Bukti runtime tersedia",
+    "nilai": "log error 8 gerbang (progress)",
+    "bukti": "docs/root_cause_analysis_nav_lokalisasi.md",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "aspek": "Bukti runtime kurang",
+    "nilai": "video navigasi, log /cmd_vel saat goal, screenshot RViz path",
+    "bukti": "-",
+    "status": "Tidak ditemukan di repo/file saat ini"
+  }
+]

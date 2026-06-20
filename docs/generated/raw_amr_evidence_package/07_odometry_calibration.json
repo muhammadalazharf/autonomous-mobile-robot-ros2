@@ -1,0 +1,42 @@
+[
+  {
+    "percobaan": 1,
+    "jarak_aktual_cm": 22,
+    "jarak_odom_m": 0.5,
+    "odom_cm": 50,
+    "rasio_real_per_odom": 0.44,
+    "catatan": "uji odom-vs-meteran 14-Jun"
+  },
+  {
+    "percobaan": 2,
+    "jarak_aktual_cm": 41,
+    "jarak_odom_m": 1.0,
+    "odom_cm": 100,
+    "rasio_real_per_odom": 0.41,
+    "catatan": "uji odom-vs-meteran 14-Jun"
+  },
+  {
+    "percobaan": 3,
+    "jarak_aktual_cm": 61,
+    "jarak_odom_m": 1.5,
+    "odom_cm": 150,
+    "rasio_real_per_odom": 0.4067,
+    "catatan": "uji odom-vs-meteran 14-Jun"
+  },
+  {
+    "percobaan": 4,
+    "jarak_aktual_cm": 81,
+    "jarak_odom_m": 2.0,
+    "odom_cm": 200,
+    "rasio_real_per_odom": 0.405,
+    "catatan": "uji odom-vs-meteran 14-Jun"
+  },
+  {
+    "percobaan": 5,
+    "jarak_aktual_cm": 96,
+    "jarak_odom_m": 2.5,
+    "odom_cm": 250,
+    "rasio_real_per_odom": 0.384,
+    "catatan": "uji odom-vs-meteran 14-Jun"
+  }
+]

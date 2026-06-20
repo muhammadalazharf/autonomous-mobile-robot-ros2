@@ -1,0 +1,182 @@
+[
+  {
+    "komponen": "Intel NUC 13 i7 (NUC13ANHi7)",
+    "jenis": "Komputer onboard",
+    "fungsi": "Pusat komputasi perception/mapping/navigation/ROS2",
+    "data": "Menjalankan seluruh node ROS2",
+    "topic": "-",
+    "package_node": "semua",
+    "bukti": "src/amr_bringup/launch/amr_full.launch.py",
+    "status": "Catatan/progress (perlu validasi sumber)"
+  },
+  {
+    "komponen": "STM32F407",
+    "jenis": "Mikrokontroler",
+    "fungsi": "Kendali motor + servo, baca encoder, jembatan serial",
+    "data": "TX V:{pwm},S:{sudut}; RX E:{delta}",
+    "topic": "/encoder, /cmd_vel, /joy",
+    "package_node": "amr_controller/stm32_bridge",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "komponen": "RPLIDAR C1",
+    "jenis": "Sensor LiDAR 2D 360",
+    "fungsi": "Scan jarak planar, obstacle, costmap, scan-matching",
+    "data": "LaserScan (~720 titik, ~10 Hz)",
+    "topic": "/scan",
+    "package_node": "rplidar_ros/rplidar_node",
+    "bukti": "src/amr_bringup/launch/sensors_launch.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "komponen": "Intel RealSense D455",
+    "jenis": "Kamera RGB-D + IMU",
+    "fungsi": "RGB+Depth untuk RTAB-Map/VIO; IMU gravity",
+    "data": "RGB 848x480x30, Depth 848x480x30, accel+gyro",
+    "topic": "/camera/camera/color/*, /aligned_depth_to_color/*, /accel,/gyro",
+    "package_node": "realsense2_camera",
+    "bukti": "src/amr_bringup/launch/sensors_launch.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "komponen": "IMU (BMI055 internal D455)",
+    "jenis": "IMU 6-DoF",
+    "fungsi": "Gravity constraint + prediksi gerak VIO",
+    "data": "accel + gyro",
+    "topic": "/camera/camera/accel/sample, /gyro/sample -> /imu/data",
+    "package_node": "amr_controller/imu_merger",
+    "bukti": "src/amr_controller/scripts/imu_merger_node.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "komponen": "Accelerometer (BMI055)",
+    "jenis": "Bagian IMU",
+    "fungsi": "Linear acceleration untuk fusi",
+    "data": "linear_acceleration",
+    "topic": "/camera/camera/accel/sample",
+    "package_node": "amr_controller/imu_merger",
+    "bukti": "src/amr_controller/scripts/imu_merger_node.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "komponen": "Gyroscope (BMI055)",
+    "jenis": "Bagian IMU",
+    "fungsi": "Angular velocity (vyaw) untuk fusi",
+    "data": "angular_velocity",
+    "topic": "/camera/camera/gyro/sample",
+    "package_node": "amr_controller/imu_merger",
+    "bukti": "src/amr_controller/scripts/imu_merger_node.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "komponen": "Encoder (pada PG45)",
+    "jenis": "Rotary encoder",
+    "fungsi": "Umpan balik gerak untuk odometry",
+    "data": "delta ticks (PPR efektif 3858)",
+    "topic": "/encoder",
+    "package_node": "amr_controller/odometry_publisher",
+    "bukti": "src/amr_controller/scripts/odometry_publisher.py",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "komponen": "Motor PG45",
+    "jenis": "DC gear motor + encoder",
+    "fungsi": "Penggerak 4WD (1 motor + 2 diferensial + shaft)",
+    "data": "PWM dari STM32",
+    "topic": "via /cmd_vel -> bridge",
+    "package_node": "amr_controller/stm32_bridge",
+    "bukti": "src/amr_description/urdf/amr_description.urdf.xacro",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "komponen": "Driver motor BTS7960",
+    "jenis": "H-bridge driver",
+    "fungsi": "Antarmuka daya STM32 ke motor",
+    "data": "PWM + arah",
+    "topic": "-",
+    "package_node": "STM32 (firmware)",
+    "bukti": "-",
+    "status": "Catatan/progress (perlu validasi sumber) (disebut di rancangan; tak ada di repo)"
+  },
+  {
+    "komponen": "Servo kemudi DSSERVO D25",
+    "jenis": "Servo",
+    "fungsi": "Kemudi Ackermann 2 roda depan (±45)",
+    "data": "sudut S dari STM32",
+    "topic": "via /cmd_vel -> bridge",
+    "package_node": "amr_controller/stm32_bridge",
+    "bukti": "src/amr_controller/src/stm32_bridge.cpp",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "komponen": "Baterai LiPo Ovonic 5300 mAh 6S",
+    "jenis": "Catu daya",
+    "fungsi": "Suplai NUC/STM32/motor/sensor (jaga >22 V)",
+    "data": "tegangan",
+    "topic": "-",
+    "package_node": "-",
+    "bukti": "-",
+    "status": "Catatan/progress (perlu validasi sumber) (dari laporan/progress)"
+  },
+  {
+    "komponen": "Buck converter",
+    "jenis": "Konverter tegangan",
+    "fungsi": "Step-down tegangan ke subsistem",
+    "data": "-",
+    "topic": "-",
+    "package_node": "-",
+    "bukti": "-",
+    "status": "Tidak ditemukan di repo/file saat ini"
+  },
+  {
+    "komponen": "Power management module",
+    "jenis": "Manajemen daya",
+    "fungsi": "Distribusi daya",
+    "data": "-",
+    "topic": "-",
+    "package_node": "-",
+    "bukti": "-",
+    "status": "Tidak ditemukan di repo/file saat ini"
+  },
+  {
+    "komponen": "Emergency stop",
+    "jenis": "Keselamatan",
+    "fungsi": "Hentikan robot darurat",
+    "data": "-",
+    "topic": "(software: EMERGENCY_STOP state)",
+    "package_node": "amr_failover",
+    "bukti": "src/amr_failover/amr_failover/failover_controller.py",
+    "status": "Catatan/progress (perlu validasi sumber) (e-stop SOFTWARE ada; e-stop FISIK perlu validasi)"
+  },
+  {
+    "komponen": "Push button",
+    "jenis": "Input keselamatan",
+    "fungsi": "PERLU_KONFIRMASI",
+    "data": "-",
+    "topic": "-",
+    "package_node": "-",
+    "bukti": "-",
+    "status": "Tidak ditemukan di repo/file saat ini"
+  },
+  {
+    "komponen": "Joystick PS4/PS5",
+    "jenis": "Kontroler manual",
+    "fungsi": "Teleop manual + deadman R1",
+    "data": "axes + buttons",
+    "topic": "/joy",
+    "package_node": "joy_node + stm32_bridge",
+    "bukti": "src/amr_bringup/config/joy_params.yaml",
+    "status": "Terverifikasi dari file"
+  },
+  {
+    "komponen": "GNSS/GPS U-Blox",
+    "jenis": "Posisi global",
+    "fungsi": "DICOPOT (indoor only)",
+    "data": "-",
+    "topic": "-",
+    "package_node": "-",
+    "bukti": "src/amr_bringup/launch/sensors_launch.py",
+    "status": "Terverifikasi dari file (dinyatakan dicopot di sensors_launch.py)"
+  }
+]
