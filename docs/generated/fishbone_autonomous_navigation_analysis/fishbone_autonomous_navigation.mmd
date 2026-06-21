@@ -1,0 +1,50 @@
+flowchart LR
+    EFFECT["EFFECT: AMR otonom<br/>global planner point-to-point +<br/>local planner obstacle-avoidant"]
+    A["Bone A<br/>Platform Hardware dan Aktuator"] --> EFFECT
+    A_0["[VF] Sasis 4WD + 4 roda + 2 steering link"] --> A
+    A_1["[VF] Motor PG45 (4WD: 1 motor + 2 diferensial +"] --> A
+    A_2["[VF] Servo kemudi DSSERVO D25, MAX_STEER 45, ST"] --> A
+    B["Bone B<br/>Sensor dan Persepsi Lingkungan"] --> EFFECT
+    B_0["[VF] RPLIDAR C1 -> /scan, frame laser_frame, ba"] --> B
+    B_1["[VL] Parameter scan nyata: range 0.15-16 m, ~72"] --> B
+    B_2["[VF] RealSense D455 RGB+Depth 848x480x30, align"] --> B
+    C["Bone C<br/>ROS 2 Middleware dan Arsitektur Software"] --> EFFECT
+    C_0["[VF] amr_description (URDF/TF)"] --> C
+    C_1["[VF] amr_controller (stm32_bridge, odometry, im"] --> C
+    C_2["[VF] amr_bringup (master launch + sensor + joy)"] --> C
+    D["Bone D<br/>Model Robot, URDF/Xacro, dan TF Tree"] --> EFFECT
+    D_0["[VF] TF tree: base_footprint->base_link->{chass"] --> D
+    D_1["[VF] laser_frame z=0.25; camera x=0.35 z=0.20; "] --> D
+    D_2["[VF] Geometri wheelbase 0.5 / track 0.4 / wheel"] --> D
+    E["Bone E<br/>Odometry dan Estimasi Gerak"] --> EFFECT
+    E_0["[VF] odometry_publisher (bicycle model Ackerman"] --> E
+    E_1["[VF] Rumus dist_per_tick=2*pi*r/PPR; theta+=(vx"] --> E
+    E_2["[VF] PPR awal 1496 -> kalibrasi 3858; dist_per_"] --> E
+    F["Bone F<br/>Mapping Lingkungan (RTAB-Map)"] --> EFFECT
+    F_0["[VF] Config mapping: Reg/Strategy 2, LoopThr 0."] --> F
+    F_1["[VF] Launch mapping (RGB-D+Scan+IMU sync, VIO)"] --> F
+    F_2["[PG] Peta acuan lab_demo_18jun.db: 448 pose, 12"] --> F
+    G["Bone G<br/>Localization terhadap Peta"] --> EFFECT
+    G_0["[VF] Config localization: Mem/IncrementalMemory"] --> G
+    G_1["[VF] Launch localization (rtabmap mode localiza"] --> G
+    G_2["[VF] Ambang disamakan dgn mapping (LoopThr 0.05"] --> G
+    H["Bone H<br/>Navigation2 Global Planner — Point-to-Point"] --> EFFECT
+    H_0["[VF] Planner SmacPlannerHybrid (DUBIN, min turn"] --> H
+    H_1["[VF] Global costmap (static+obstacle+inflation,"] --> H
+    H_2["[VF] Action navigate_to_pose (server bt_navigat"] --> H
+    I["Bone I<br/>Navigation2 Local Planner — Obstacle Avoidant"] --> EFFECT
+    I_0["[VF] Controller RegulatedPurePursuit (desired_l"] --> I
+    I_1["[VF] Local costmap 4x4 rolling: voxel_layer + i"] --> I
+    I_2["[VF] Obstacle source = LiDAR /scan; depth_scan "] --> I
+    J["Bone J<br/>Eksekusi Perintah ke STM32 dan Aktuator"] --> EFFECT
+    J_0["[VF] stm32_bridge subscribe /cmd_vel -> serial "] --> J
+    J_1["[VF] Baudrate 115200; konversi steer=-atan(L*w/"] --> J
+    J_2["[VF] Gate autonomous_enabled (default false -> "] --> J
+    K["Bone K<br/>Safety, Failover, dan Manual Override"] --> EFFECT
+    K_0["[VF] Failover state machine (SLAM/VISUAL/JOY/E-"] --> K
+    K_1["[VF] E-stop software: min /scan < 0.30 m -> cmd"] --> K
+    K_2["[VF] Deadman R1 (button 5); watchdog cmd_vel 50"] --> K
+    L["Bone L<br/>Evidence, Testing, dan Gap Validasi"] --> EFFECT
+    L_0["[VF] Konfigurasi sistem (semua YAML/launch/sour"] --> L
+    L_1["[VL] Kalibrasi odometry numerik + R2=0.998"] --> L
+    L_2["[VL] Diagram TF (frames_*.pdf)"] --> L

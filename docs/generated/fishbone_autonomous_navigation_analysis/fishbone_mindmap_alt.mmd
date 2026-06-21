@@ -1,0 +1,50 @@
+mindmap
+  root((AMR Autonomous))
+    A. Platform Hardware dan Aktuator
+      [VF] Sasis 4WD + 4 roda + 2 steering link
+      [VF] Motor PG45 (4WD: 1 motor + 2 diferensial
+      [VF] Servo kemudi DSSERVO D25, MAX_STEER 45, 
+    B. Sensor dan Persepsi Lingkungan
+      [VF] RPLIDAR C1 -> /scan, frame laser_frame, 
+      [VL] Parameter scan nyata: range 0.15-16 m, ~
+      [VF] RealSense D455 RGB+Depth 848x480x30, ali
+    C. ROS 2 Middleware dan Arsitektur Software
+      [VF] amr_description (URDF/TF)
+      [VF] amr_controller (stm32_bridge, odometry, 
+      [VF] amr_bringup (master launch + sensor + jo
+    D. Model Robot, URDF/Xacro, dan TF Tree
+      [VF] TF tree: base_footprint->base_link->{cha
+      [VF] laser_frame z=0.25; camera x=0.35 z=0.20
+      [VF] Geometri wheelbase 0.5 / track 0.4 / whe
+    E. Odometry dan Estimasi Gerak
+      [VF] odometry_publisher (bicycle model Ackerm
+      [VF] Rumus dist_per_tick=2*pi*r/PPR; theta+=(
+      [VF] PPR awal 1496 -> kalibrasi 3858; dist_pe
+    F. Mapping Lingkungan (RTAB-Map)
+      [VF] Config mapping: Reg/Strategy 2, LoopThr 
+      [VF] Launch mapping (RGB-D+Scan+IMU sync, VIO
+      [PG] Peta acuan lab_demo_18jun.db: 448 pose, 
+    G. Localization terhadap Peta
+      [VF] Config localization: Mem/IncrementalMemo
+      [VF] Launch localization (rtabmap mode locali
+      [VF] Ambang disamakan dgn mapping (LoopThr 0.
+    H. Navigation2 Global Planner — Point-to-Point
+      [VF] Planner SmacPlannerHybrid (DUBIN, min tu
+      [VF] Global costmap (static+obstacle+inflatio
+      [VF] Action navigate_to_pose (server bt_navig
+    I. Navigation2 Local Planner — Obstacle Avoidant
+      [VF] Controller RegulatedPurePursuit (desired
+      [VF] Local costmap 4x4 rolling: voxel_layer +
+      [VF] Obstacle source = LiDAR /scan; depth_sca
+    J. Eksekusi Perintah ke STM32 dan Aktuator
+      [VF] stm32_bridge subscribe /cmd_vel -> seria
+      [VF] Baudrate 115200; konversi steer=-atan(L*
+      [VF] Gate autonomous_enabled (default false -
+    K. Safety, Failover, dan Manual Override
+      [VF] Failover state machine (SLAM/VISUAL/JOY/
+      [VF] E-stop software: min /scan < 0.30 m -> c
+      [VF] Deadman R1 (button 5); watchdog cmd_vel 
+    L. Evidence, Testing, dan Gap Validasi
+      [VF] Konfigurasi sistem (semua YAML/launch/so
+      [VL] Kalibrasi odometry numerik + R2=0.998
+      [VL] Diagram TF (frames_*.pdf)
