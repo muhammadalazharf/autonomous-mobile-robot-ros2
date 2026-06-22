@@ -44,7 +44,7 @@ from rclpy.duration import Duration
 from std_msgs.msg import Int32
 from sensor_msgs.msg import Joy
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Quaternion, TransformStamped
+from geometry_msgs.msg import Quaternion, TransformStamped, Twist
 from tf2_ros import TransformBroadcaster
 
 
@@ -111,6 +111,12 @@ class OdometryPublisher(Node):
             Int32, '/encoder', self.encoder_cb, qos)
         self.sub_joy = self.create_subscription(
             Joy, '/joy', self.joy_cb, qos)
+        # AUDIT 48h FIX #2: baca sudut setir dari /cmd_vel saat autonomous.
+        # Tanpa ini, saat autonomous (joystick netral) self.steering = 0 ->
+        # yaw odom BEKU -> patrol "mentok belok 0/90". cmd_vel_cb meng-update
+        # steering via Ackermann inverse: steer = atan(L * w / v).
+        self.sub_cmd = self.create_subscription(
+            Twist, '/cmd_vel', self.cmd_vel_cb, qos)
 
         self.pub_odom = self.create_publisher(Odometry, '/odom', qos)
 
@@ -134,11 +140,30 @@ class OdometryPublisher(Node):
     # Callbacks
     # =====================================================
     def joy_cb(self, msg: Joy):
-        """Read steering axis from joystick."""
+        """Read steering axis from joystick (manual mode)."""
         if len(msg.axes) > self.joy_steer_axis:
             steer_raw = msg.axes[self.joy_steer_axis]  # -1.0 to 1.0
-            # Match stm32_bridge convention (negate for hardware right turn)
-            self.steering = -steer_raw * self.max_steer
+            # AUDIT 48h FIX #2: hanya update saat stick benar digerakkan (deadzone).
+            # Saat autonomous joystick netral (~0) -> JANGAN timpa steering dari
+            # cmd_vel dgn nol (sumber yaw-beku).
+            if abs(steer_raw) > 0.05:
+                # Match stm32_bridge convention (negate for hardware right turn)
+                self.steering = -steer_raw * self.max_steer
+
+    def cmd_vel_cb(self, msg: Twist):
+        """Ackermann inverse: turunkan sudut setir dari /cmd_vel saat autonomous.
+        steer = atan(wheelbase * angular.z / linear.x). Integrasi odometry:
+        theta += (vx/L)*tan(steer)*dt = (vx * w / v)*dt -> mengikuti yaw rate
+        yang diperintahkan Nav2. Konvensi tanda odometry (frame robot): +steer = +yaw.
+        """
+        v = msg.linear.x
+        w = msg.angular.z
+        if abs(v) > 0.02:
+            steer = math.atan(self.wheelbase * w / v)
+        else:
+            steer = 0.0
+        # clamp ke batas mekanis kemudi
+        self.steering = max(-self.max_steer, min(self.max_steer, steer))
 
     def encoder_cb(self, msg: Int32):
         """Process encoder reading; auto-detect cumulative vs delta."""

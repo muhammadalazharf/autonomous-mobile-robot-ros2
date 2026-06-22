@@ -63,6 +63,10 @@ public:
     this->declare_parameter("autonomous_enabled", false);
     this->declare_parameter("max_speed_mps", 1.0);
     this->declare_parameter("cmd_vel_timeout_ms", 500);
+    // AUDIT 48h FIX #6: runtime cap anti-runaway. Bila goal_checker Nav2 tak
+    // trigger (mis. overshoot), batasi durasi gerak autonomous lalu auto-stop.
+    // Komplementer dgn PWM ramping (anti-brownout). 0 = nonaktif.
+    this->declare_parameter("autonomous_max_runtime_s", 10.0);
 
     joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
       "/joy", 10,
@@ -115,6 +119,9 @@ private:
   bool running_;
   bool manual_override_ = false;
   bool autonomous_active_ = false;
+  // AUDIT 48h FIX #6: penanda mulai sesi autonomous (untuk runtime cap)
+  rclcpp::Time autonomous_start_time_;
+  bool autonomous_run_started_ = false;
 
   // Software ramping: limit PWM change rate to reduce motor inrush current
   // and prevent power-rail brownout that freezes the NUC.
@@ -174,11 +181,17 @@ private:
     bool enabled = this->get_parameter("autonomous_enabled").as_bool();
     if (!enabled || manual_override_) {
       autonomous_active_ = false;
+      autonomous_run_started_ = false;   // reset sesi saat gate ditutup/override
       return;
     }
 
     last_cmd_vel_time_ = this->now();
     autonomous_active_ = true;
+    // AUDIT 48h FIX #6: tandai awal sesi gerak autonomous
+    if (!autonomous_run_started_) {
+      autonomous_start_time_ = this->now();
+      autonomous_run_started_ = true;
+    }
 
     double v = msg->linear.x;
     double w = msg->angular.z;
@@ -209,12 +222,28 @@ private:
   {
     if (!autonomous_active_ || manual_override_) return;
 
+    // AUDIT 48h FIX #6: runtime cap — auto-stop bila sesi autonomous melebihi batas
+    double max_runtime = this->get_parameter("autonomous_max_runtime_s").as_double();
+    if (max_runtime > 0.0 && autonomous_run_started_) {
+      double run_s = (this->now() - autonomous_start_time_).nanoseconds() / 1e9;
+      if (run_s > max_runtime) {
+        autonomous_active_ = false;
+        autonomous_run_started_ = false;
+        send_command(0, STEER_TRIM);
+        RCLCPP_WARN(this->get_logger(),
+          "[RUNTIME-CAP] autonomous %0.1fs > %0.1fs — motor stopped (anti-runaway)",
+          run_s, max_runtime);
+        return;
+      }
+    }
+
     int timeout_ms = this->get_parameter("cmd_vel_timeout_ms").as_int();
     auto elapsed_ms =
       (this->now() - last_cmd_vel_time_).nanoseconds() / 1000000;
 
     if (elapsed_ms > timeout_ms) {
       autonomous_active_ = false;
+      autonomous_run_started_ = false;
       send_command(0, STEER_TRIM);
       RCLCPP_WARN(this->get_logger(),
         "[WATCHDOG] cmd_vel timeout (%ld ms) — motor stopped", elapsed_ms);
