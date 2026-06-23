@@ -13,7 +13,8 @@
 2. **Steering autonomous DIPERBAIKI** (commit `fec1ee5`): `steer_rad = -atan(L·ω/v)`. Velocity tidak dinegasi — kabel motor sudah ditukar fisik.
 3. **Audit 48h diterapkan** (commit `19cebb7`): pivot frame `map → odom`, self-scan filter, runtime cap 10s, odom yaw dari `/cmd_vel`.
 4. **Build amr_controller sukses di NUC** (6.40s). Skrip Mervi (`run_amr_demo.sh`, `demo_drive_forward.sh`, `log_localization.py`, `reset_odom.sh`, `behavior_trees/`) **sudah ada lokal** — tidak perlu sinkron dari repo Mervi.
-5. **Mode demo:** navigasi otonom di frame **odom** (VIO mulus), goal jarak pendek (≤2 m relatif `base_link`). Map-frame = future work.
+5. **Mode demo:** navigasi otonom di frame **odom** (VIO mulus), goal jarak pendek. Map-frame = future work.
+6. **UJI LAPANGAN 22–23 Jun: BERHASIL** — 2 run `SUCCEEDED` terverifikasi runtime. **Wajib baca §6c** (4 temuan operasional: goal harus frame `odom`, reset_odom ≠ reset TF, goal ≥ 1 m, naikkan runtime cap). Bukti: bag + rqt_graph + log + video Mervi.
 
 ---
 
@@ -147,16 +148,43 @@ bash src/amr_slam/scripts/demo_drive_forward.sh 0.5 0.2
 
 ---
 
-## 5. Bukti yang Wajib Direkam (untuk Laporan)
+## 5. Bukti Terkumpul (Status Aktual per 22–23 Jun)
 
-| Bukti | Cara Capture | File output |
-|-------|--------------|-------------|
-| Video robot terima goal & bergerak | HP/kamera | `evidence/demo_goal_xx.mp4` |
-| `/cmd_vel` selama autonomous | `ros2 bag record /cmd_vel /odom` | `bags/demo_run.db3` |
-| Log lokalisasi real-time | `python3 src/amr_slam/scripts/log_localization.py` | `logs/localization_22jun.csv` |
-| `rqt_graph` | screenshot | `evidence/rqt_graph.png` |
-| RViz path + costmap | screenshot | `evidence/rviz_nav_goal.png` |
-| Database RTAB-Map | sudah ada | `~/maps/lab_demo_xxxxx.db` |
+| Bukti | Status | File output |
+|-------|--------|-------------|
+| Bag `/cmd_vel` `/odom` `/rtabmap/odom` | ✅ **terekam** | `~/amr_starter/bags/demo_run2_23jun/` |
+| `rqt_graph` node graph lengkap | ✅ **tersimpan** | `evidence/rqt_graph.png` |
+| Log Nav2 `SUCCEEDED` (action feedback) | ✅ **terverifikasi runtime** | lihat §5b |
+| Video robot terima goal & bergerak | ✅ **ada (rekaman Mervi)** | (arsip Mervi) |
+| Log lokalisasi real-time | ⬜ opsional | `logs/localization_22jun.csv` |
+| RViz path + costmap | ⬜ opsional | `evidence/rviz_nav_goal.png` |
+| Database RTAB-Map | ✅ sudah ada | `~/maps/lab_demo_xxxxx.db` |
+
+### 5b. Bukti SUCCEEDED (output runtime terverifikasi)
+
+Dua run berhasil dengan status `SUCCEEDED`, dikonfirmasi via `/verify` (runtime observation, bukan klaim kode):
+
+**Run pertama** (goal `odom x=1.0`):
+```
+Goal finished with status: SUCCEEDED
+navigation_time: 7.75 s
+distance_remaining: 0.2355   (< xy_goal_tolerance 0.25 → trigger sampai)
+WHEEL /odom : x=0.7625, y=-0.0205
+VIO /rtabmap/odom : x=0.7092, y=0.0579   (drift wheel-VIO ~0.05 m / 7%)
+final pose : (0.7065, 0.0593), heading lurus (w=0.9999)
+```
+
+**Run kedua** (goal `odom x=1.0`, dengan bag recording aktif):
+```
+Goal finished with status: SUCCEEDED
+navigation_time: 24.18 s
+number_of_recoveries: 3
+distance_remaining: 0.2355
+final pose : (0.7058, 0.0522)
+bag : demo_run2_23jun (subscribed /cmd_vel /odom /rtabmap/odom)
+```
+
+Verdict `/verify`: **PASS** — "robot terima goal Nav2 → bergerak ke titik → berhenti sendiri dengan SUCCEEDED" terbukti runtime.
 
 ---
 
@@ -166,10 +194,86 @@ bash src/amr_slam/scripts/demo_drive_forward.sh 0.5 0.2
 
 ---
 
+## 6c. Catatan Uji Lapangan (Sesi 22–23 Jun) — WAJIB BACA SEBELUM DEMO
+
+Empat temuan operasional dari sesi debugging panjang. Tanpa ini, demo gagal berulang.
+
+### Temuan 1 🔴 — Goal HARUS frame `odom`, JANGAN `base_link`
+
+Goal di frame `base_link` **mengejar robot**: tiap replan (~1 Hz) titik tujuan dihitung ulang relatif posisi robot saat ini → robot tidak pernah sampai, jalan terus tanpa berhenti.
+
+```bash
+# SALAH — goal mengejar robot, tidak pernah SUCCEEDED:
+"{pose: {header: {frame_id: 'base_link'}, pose: {position: {x: 1.0}}}}"
+
+# BENAR — titik tetap di frame odom:
+"{pose: {header: {frame_id: 'odom'}, pose: {position: {x: 1.0}, orientation: {w: 1.0}}}}"
+```
+
+### Temuan 2 🔴 — `reset_odom` reset TOPIK, BUKAN TF. Nav2 baca TF.
+
+`reset_odom.sh` me-reset `/rtabmap/odom` topic ke ~0, **tetapi TF `odom→base_link` tetap di posisi lama** (mis. x=0.758). Nav2 baca pose dari TF, bukan topik → goal absolut salah hitung → robot diam (mengira sudah sampai).
+
+Gejala: `/rtabmap/odom` x≈0 tapi `tf2_echo odom base_link` masih x=0.758.
+
+**Dua cara benar:**
+```bash
+# Cara A (paling bersih): restart VIO → TF mulai dari (0,0)
+#   Ctrl+C Terminal 2, lalu:
+ros2 launch amr_3d_mapping vio_only.launch.py
+
+# Cara B (tanpa restart): kirim goal = posisi TF sekarang + jarak
+#   cek dulu: ros2 run tf2_ros tf2_echo odom base_link   → mis. x=0.758
+#   lalu goal x = 0.758 + 1.0 = 1.758
+"{pose: {header: {frame_id: 'odom'}, pose: {position: {x: 1.758}, orientation: {w: 1.0}}}}"
+```
+
+### Temuan 3 🟡 — Goal terlalu dekat = SUCCEEDED instan tanpa gerak
+
+`xy_goal_tolerance: 0.25` m. Goal `x=0.10` (atau goal yang jaraknya < 0.25 m dari posisi robot saat ini) → Nav2 langsung `Reached the goal!` tanpa kirim cmd_vel. **Selalu pakai goal ≥ 1.0 m** dari posisi robot.
+
+Konsekuensi: robot berhenti **~0.7 m saat goal 1.0 m** (sisa 0.25 m masuk toleransi). Ini normal, bukan bug. Kalau butuh akurasi lebih: turunkan `xy_goal_tolerance` → 0.1 dan `lookahead_dist` → 0.3.
+
+### Temuan 4 🟠 — Runtime cap 10 s bisa bikin Nav2 stuck di `distance_remaining: 0.25`
+
+Bila motor di-cap auto-stop 10 s sementara Nav2 masih menganggap goal belum tercapai (mis. servo goyang kiri-kanan di approach phase, `number_of_recoveries` naik), feedback macet di `distance_remaining: 0.25` selamanya. Servo goyang kiri-kanan radius kecil di approach = **normal** (alignment heading RegulatedPurePursuit), bukan bug.
+
+**Mitigasi saat demo:** naikkan cap sebelum kirim goal.
+```bash
+ros2 param set /stm32_bridge autonomous_max_runtime_s 60.0
+ros2 param set /stm32_bridge autonomous_enabled true
+```
+
+### Urutan demo yang TERBUKTI berhasil (copy-paste)
+
+```bash
+# T1: ros2 launch amr_bringup amr_full.launch.py
+# T2: ros2 launch amr_3d_mapping vio_only.launch.py     ← restart ini tiap mau reset posisi
+# T3: ros2 launch amr_slam nav2.launch.py               ← tunggu "Managed nodes are active"
+
+# T4: set param SEBELUM goal
+ros2 param set /stm32_bridge autonomous_max_runtime_s 60.0
+ros2 param set /stm32_bridge autonomous_enabled true
+
+# T5: bag + goal (frame odom, jarak ≥ 1 m)
+ros2 bag record /cmd_vel /odom /rtabmap/odom -o ~/amr_starter/bags/demo_$(date +%H%M)
+ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
+  "{pose: {header: {frame_id: 'odom'}, pose: {position: {x: 1.0, y: 0.0, z: 0.0}, orientation: {w: 1.0}}}}" \
+  --feedback
+# → tunggu "Goal finished with status: SUCCEEDED", JANGAN abort
+```
+
+### Catatan lingkungan
+
+- **RViz / rqt dari NoMachine** (bukan SSH): `export DISPLAY=:0` + `export LIBGL_ALWAYS_SOFTWARE=1`. Via SSH → "could not connect to display".
+- **Error `VWDictionary.cpp: Not found word`** dari node `rtabmap` (loop closure) = **bukan kritis**. VIO (`rgbd_odometry`) jalan terpisah, tidak terpengaruh. Abaikan untuk demo odom-frame.
+
+---
+
 ## 7. Yang TIDAK Bisa Dipastikan dari Kode (Wajib Cek Runtime)
 
 1. **Tanda kemudi kiri=kiri** di hardware (fix `fec1ee5` belum diverifikasi NUC).
-2. **Drift VIO** sepanjang jarak demo — kalau goal > 2 m, drift bisa signifikan.
+2. **Drift VIO** sepanjang jarak demo — terukur ~7% (0.05 m / 0.7 m) di run hari ini; kalau goal > 2 m drift bisa signifikan.
 3. **Brownout NUC** saat motor start — PWM ramping seharusnya jaring, tapi cek live.
 4. **Encoder format auto-detect** di `odometry_publisher.py` — pastikan log `[AUTO-DETECT]` muncul dengan format yang benar.
 
@@ -199,4 +303,4 @@ bash src/amr_slam/scripts/demo_drive_forward.sh 0.5 0.2
 
 ---
 
-**Status akhir minggu:** Sistem siap demo di mode **odom-frame, goal jarak pendek**. Semua jaring pengaman aktif (runtime cap + PWM ramping + watchdog cmd_vel). Tinggal verifikasi lapangan & rekam bukti.
+**Status akhir minggu:** Navigasi otonom odom-frame **TERBUKTI BERHASIL** (2 run `SUCCEEDED`, terverifikasi runtime via `/verify` → PASS). Bukti terkumpul: bag recording + rqt_graph + log SUCCEEDED + video (Mervi). Semua jaring pengaman aktif (runtime cap + PWM ramping + watchdog cmd_vel). Empat temuan operasional uji lapangan terdokumentasi di §6c (wajib baca sebelum demo ulang). Sisa: laporan & sidang.
