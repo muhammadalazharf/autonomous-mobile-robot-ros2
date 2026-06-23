@@ -1,7 +1,7 @@
-# HANDOVER PENGAMBILAN BUKTI — 4 Kategori
-**Sensor · Mapping · Lokalisasi · Autonomous**
+# HANDOVER PENGAMBILAN BUKTI — 5 Kategori
+**Sensor · Mapping · Lokalisasi · Autonomous · Data Terolah `.db`**
 
-**Untuk:** Tim PjBL AMR | **Waktu eksekusi:** ~110 menit total
+**Untuk:** Tim PjBL AMR | **Waktu eksekusi:** ~125 menit total
 **Lokasi:** NUC `itssurabaya@10.17.36.151`, workspace `~/amr_starter`
 **Branch:** `claude/zealous-darwin-6l4bs5`
 
@@ -26,6 +26,7 @@
 - ❌ **[K2]** Screenshot map visual (databaseViewer), plot lintasan x-y
 - ❌ **[K3]** Screenshot loop closure hijau, log `/localization_pose`
 - ❌ **[K4]** Video robot otonom, log `/cmd_vel`, screenshot RViz path+costmap
+- ❌ **[K5]** Data terolah dari semua database `.db` (Excel + chart) untuk laporan Bab 2.10–2.12
 
 ---
 
@@ -394,6 +395,87 @@ docs/evidence/autonomous/
 
 ---
 
+## BUKTI 5 — DATA TEROLAH dari DATABASE `.db` (~15 menit, OFFLINE, tanpa robot)
+
+**Tujuan:** ubah 26 database `.db` di `~/maps/` menjadi data numerik + grafik siap-pakai untuk Bab 2.10–2.12 laporan. Bisa dikerjakan kapan saja, tanpa robot/sensor menyala.
+
+### 5.1 Install dependency (sekali saja)
+```bash
+pip3 install openpyxl
+```
+*Apa:* library untuk menulis Excel `.xlsx` multi-sheet + chart. *Kenapa:* output utama bab analisis database adalah file Excel; tanpa openpyxl hanya CSV yang ditulis.
+
+### 5.2 Ekstrak struktur database → Excel multi-sheet
+```bash
+cd ~/amr_starter
+python3 scripts/export_rtabmap_db.py ~/maps --out ~/hasil_ekstrak
+```
+*Apa:* setiap `.db` jadi `<db>.xlsx` (4 sheet: RINGKASAN, TRAJECTORY, LOOP_CLOSURE, NODE_DETAIL) + `RINGKASAN_SEMUA.xlsx` (perbandingan semua database). *Kenapa:* TRAJECTORY (ratusan baris x, y, z, yaw) adalah data mentah untuk Bab 2.10.2; RINGKASAN_SEMUA jadi tabel di Bab 2.11.1.
+
+> Database yang rusak/kosong otomatis di-SKIP — pesan `[SKIP] file rusak: ...` muncul, proses lanjut ke berikutnya.
+
+### 5.3 Analisis turunan + chart embedded
+```bash
+python3 scripts/analyze_rtabmap_excel.py --input ~/hasil_ekstrak --output ~/hasil_olahan
+```
+*Apa:* baca semua `<db>.xlsx`, hitung **kecepatan rata-rata mapping (m/s), density keyframe (node/m), loop closure rate (%), drift Z (m)**. Output `<db>_ANALISIS.xlsx` (5 chart embedded) + `PERBANDINGAN_SEMUA_ANALISIS.xlsx` (4 bar chart ranking). *Kenapa:* sheet GRAFIK siap di-screenshot/embed ke Word untuk Gambar Bab 2.10–2.12; tidak perlu re-plot manual.
+
+### 5.4 (Opsional) Ekstrak gambar RGB + depth per-frame
+```bash
+# Preview 10 frame dulu:
+python3 scripts/extract_rtabmap_images.py --single ~/maps/lab_demo_18jun.db --limit 10
+
+# Kalau OK, jalankan untuk peta acuan (hemat: stride 5):
+python3 scripts/extract_rtabmap_images.py --single ~/maps/lab_demo_18jun.db --stride 5
+```
+*Apa:* simpan RGB JPEG + Depth PNG per keyframe ke `~/hasil_ekstrak/images/<db>/{rgb,depth}/` + `poses.csv`. *Kenapa:* bukti visual akuisisi data Bab 2.10.1 (lampirkan 3-5 frame sample); `poses.csv` sinkron dengan TRAJECTORY untuk korelasi pose ↔ gambar.
+
+### 5.5 (Opsional) Ekstrak scan LiDAR mentah per-frame
+```bash
+python3 scripts/extract_rtabmap_scan.py --single ~/maps/lab_demo_18jun.db --stride 5
+```
+*Apa:* setiap keyframe jadi CSV ratusan baris (`x, y, z, intensity, range, angle`) + `scan_summary.csv` (1 baris/frame: jumlah point, range min/max/mean). *Kenapa:* data mentah untuk analisis kualitas mapping di Bab 2.11.2 (sebaran range valid menunjukkan apakah ruangan dipindai dengan baik).
+
+### 5.6 Pemetaan ke sub-bab laporan
+
+| Sub-bab Laporan | File yang dipakai dari `~/hasil_olahan/` |
+|---|---|
+| **2.10.1** Akuisisi data mapping | `lab_demo_18jun_ANALISIS.xlsx` → RINGKASAN_ANALISIS (durasi, panjang) + sample gambar dari 5.4 |
+| **2.10.2** Pembentukan pose graph | `lab_demo_18jun_ANALISIS.xlsx` → sheet GRAFIK chart **#1 Lintasan 2D** (screenshot) |
+| **2.10.3** Penyimpanan `.db` | `RINGKASAN_SEMUA.xlsx` (daftar 26 db + ukuran MB) |
+| **2.11.1** Status database | `PERBANDINGAN_SEMUA_ANALISIS.xlsx` (valid vs kosong/rusak — catat manual: 4 corrupt, 2 kosong) |
+| **2.11.2** Node/keyframe/LC | `lab_demo_18jun_ANALISIS.xlsx` → RINGKASAN_ANALISIS (LC rate 70.21% → "SANGAT BAIK") |
+| **2.11.3** Deduplikasi + utama | `PERBANDINGAN_SEMUA_ANALISIS.xlsx` → GRAFIK bar chart LC rate (justifikasi `lab_demo_18jun` jadi peta acuan) |
+| **2.12.1** Evaluasi peta awal | `lab_acuan_ANALISIS.xlsx` (LC=0) vs `lab_demo_18jun_ANALISIS.xlsx` (LC=70%) |
+| **2.12.2** Pelaksanaan remapping | Chart Lintasan 2D `lab_acuan` vs `lab_demo_18jun` (sebelum-sesudah) |
+| **2.12.3** Penentuan peta acuan | `PERBANDINGAN_SEMUA_ANALISIS.xlsx` ranking — `lab_demo_18jun` top-2 dari 20 |
+
+### 5.7 Output Bukti 5 (yang harus ada)
+```
+~/hasil_ekstrak/                           ← struktur dasar (per-db Excel + CSV)
+├── RINGKASAN_SEMUA.xlsx
+├── <26 file>.xlsx
+└── csv/<db>/{RINGKASAN,TRAJECTORY,LOOP_CLOSURE,NODE_DETAIL}.csv
+
+~/hasil_olahan/                            ← UTAMA untuk laporan
+├── PERBANDINGAN_SEMUA_ANALISIS.xlsx       ← Bab 2.11.3 + 2.12.3
+├── lab_demo_18jun_ANALISIS.xlsx           ← peta acuan, Bab 2.10–2.11
+├── lab_acuan_ANALISIS.xlsx                ← kontras peta awal, Bab 2.12.1
+└── <18 file _ANALISIS>.xlsx               ← arsip
+```
+
+### 5.8 Top-5 database — referensi cepat (hasil sample upload)
+
+| Database | Node | LC Rate | Kualitas | Catatan |
+|---|---|---|---|---|
+| `lab_final_20260609_212523` | 463 | 77.75% | SANGAT BAIK | sesi pendek, sangat banyak loop |
+| **`lab_demo_18jun`** ⭐ | **1846** | **70.21%** | **SANGAT BAIK** | **peta acuan, paling lengkap** |
+| `lab_demo_17jun` | 2244 | 50.36% | SANGAT BAIK | sesi terpanjang (1276s, 176m) |
+| `lab_demo_20jun` | 927 | 48.98% | SANGAT BAIK | |
+| `lab_final_20260609_210604` | 494 | 43.72% | SANGAT BAIK | |
+
+---
+
 ## COMMIT KE REPO (setelah bukti terkumpul)
 
 ```bash
@@ -433,9 +515,10 @@ git push origin claude/zealous-darwin-6l4bs5
 
 ## URUTAN PRIORITAS (kalau waktu mepet)
 
-1. **Bukti 4 (Autonomous)** — paling penting sidang; 1 video + 1 bag cukup
-2. **Bukti 1 (Sensor)** — cepat (~25 mnt), bukti forensik kuat, sekalian saat mapping/lokalisasi
-3. **Bukti 2 (Map)** — offline, kapan saja, tanpa robot
-4. **Bukti 3 (Lokalisasi)** — paling lama; kalau loop closure susah, fokus log+bag, screenshot bonus
+1. **Bukti 5 (Data terolah `.db` → Excel)** — paling cepat (~15 mnt), offline, langsung pakai untuk Bab 2.10–2.12 laporan
+2. **Bukti 4 (Autonomous)** — paling penting sidang; 1 video + 1 bag cukup
+3. **Bukti 1 (Sensor)** — cepat (~25 mnt), bukti forensik kuat, sekalian saat mapping/lokalisasi
+4. **Bukti 2 (Map)** — offline, kapan saja, tanpa robot
+5. **Bukti 3 (Lokalisasi)** — paling lama; kalau loop closure susah, fokus log+bag, screenshot bonus
 
-**Estimasi: 110 menit (semua) | 65 menit (prioritas 1+2+2)**
+**Estimasi: 125 menit (semua) | 80 menit (prioritas 1+2+3+4)**
