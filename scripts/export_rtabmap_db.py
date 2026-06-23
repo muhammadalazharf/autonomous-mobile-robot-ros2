@@ -119,7 +119,12 @@ def extract_db(db_path, out_dir):
         print(f"    [ERROR] Tidak bisa buka: {e}")
         return None
 
-    tables = table_names(conn)
+    try:
+        tables = table_names(conn)
+    except sqlite3.DatabaseError as e:
+        print(f"    [SKIP] File rusak/korup, dilewati: {e}")
+        conn.close()
+        return None
     cur = conn.cursor()
 
     summary = {
