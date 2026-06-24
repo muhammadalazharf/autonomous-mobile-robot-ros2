@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import csv
 import math
 import os
 import time
@@ -25,6 +26,7 @@ class NavigationDemoLogger(Node):
         self.path_count = 0
         self.last_path_len = 0
         self.odom_samples = []
+        self.cmd_samples = []   # raw cmd_vel time-series
         self.sub_cmd = self.create_subscription(Twist, args.cmd_topic, self.cmd_cb, 50)
         self.sub_odom = self.create_subscription(Odometry, args.odom_topic, self.odom_cb, 30)
         self.sub_path = self.create_subscription(Path, args.plan_topic, self.path_cb, 10)
@@ -39,6 +41,9 @@ class NavigationDemoLogger(Node):
         self.cmd_angular_max = max(self.cmd_angular_max, ang)
         if lin > self.args.cmd_threshold or ang > self.args.angular_threshold:
             self.nonzero_cmd_count += 1
+        self.cmd_samples.append({'t': time.time(),
+                                 'lin': float(msg.linear.x),
+                                 'ang': float(msg.angular.z)})
 
     def odom_cb(self, msg):
         p = msg.pose.pose.position
@@ -124,7 +129,37 @@ def main():
 
     header = list(row.keys())
     append_csv(os.path.join(outdir, 'navigation_trials.csv'), header, row)
-    print('\nHasil tersimpan:', os.path.join(outdir, 'navigation_trials.csv'))
+
+    # ---- RAW time-series (ratusan baris) untuk diproses sendiri ----
+    raw_dir = ensure_dir(os.path.join(outdir, 'raw'))
+    # cmd_vel raw
+    cmd_path = os.path.join(raw_dir, f'nav_cmd_{args.trial}.csv')
+    if node.cmd_samples:
+        t0 = node.cmd_samples[0]['t']
+        with open(cmd_path, 'w', newline='', encoding='utf-8') as f:
+            w = csv.writer(f)
+            w.writerow(['t_rel_s', 'linear_x_mps', 'angular_z_rps'])
+            for s in node.cmd_samples:
+                w.writerow([round(s['t'] - t0, 4), round(s['lin'], 4), round(s['ang'], 4)])
+    # odom raw
+    odom_path = os.path.join(raw_dir, f'nav_odom_{args.trial}.csv')
+    if node.odom_samples:
+        t0o = node.odom_samples[0]['t']
+        cum = 0.0
+        prev = None
+        with open(odom_path, 'w', newline='', encoding='utf-8') as f:
+            w = csv.writer(f)
+            w.writerow(['t_rel_s', 'x_m', 'y_m', 'yaw_rad', 'jarak_kumulatif_m'])
+            for s in node.odom_samples:
+                if prev is not None:
+                    cum += dist2d(prev['x'], prev['y'], s['x'], s['y'])
+                w.writerow([round(s['t'] - t0o, 4), round(s['x'], 4),
+                            round(s['y'], 4), round(s['yaw'], 4), round(cum, 4)])
+                prev = s
+
+    print('\nHasil summary :', os.path.join(outdir, 'navigation_trials.csv'))
+    print('Raw cmd_vel   :', cmd_path, f'({len(node.cmd_samples)} baris)')
+    print('Raw odom      :', odom_path, f'({len(node.odom_samples)} baris)')
     print(row)
 
     node.destroy_node()

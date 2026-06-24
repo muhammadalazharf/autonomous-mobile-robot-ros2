@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import csv
 import math
 import os
 import threading
@@ -112,7 +113,32 @@ def main():
 
     header = list(row.keys())
     append_csv(os.path.join(outdir, 'odometry_trials.csv'), header, row)
-    print('\nHasil tersimpan:', os.path.join(outdir, 'odometry_trials.csv'))
+
+    # ---- RAW time-series (ratusan baris) untuk diproses sendiri ----
+    raw_dir = ensure_dir(os.path.join(outdir, 'raw'))
+    raw_path = os.path.join(raw_dir, f'odom_{args.trial}.csv')
+    t0 = node.samples[0]['t']
+    cum = 0.0
+    with open(raw_path, 'w', newline='', encoding='utf-8') as f:
+        w = csv.writer(f)
+        w.writerow(['t_rel_s', 'x_m', 'y_m', 'yaw_rad',
+                    'jarak_kumulatif_m', 'v_instan_mps'])
+        prev = None
+        for s in node.samples:
+            if prev is not None:
+                step = dist2d(prev['x'], prev['y'], s['x'], s['y'])
+                dt = s['t'] - prev['t']
+                cum += step
+                v = (step / dt) if dt > 0 else 0.0
+            else:
+                v = 0.0
+            w.writerow([round(s['t'] - t0, 4), round(s['x'], 4),
+                        round(s['y'], 4), round(s['yaw'], 4),
+                        round(cum, 4), round(v, 4)])
+            prev = s
+
+    print('\nHasil summary :', os.path.join(outdir, 'odometry_trials.csv'))
+    print('Raw time-series:', raw_path, f'({len(node.samples)} baris)')
     print(row)
 
     node.destroy_node()

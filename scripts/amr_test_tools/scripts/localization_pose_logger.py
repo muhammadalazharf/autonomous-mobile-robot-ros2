@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import csv
 import math
 import os
 import time
@@ -21,6 +22,7 @@ class LocalizationLogger(Node):
         self.last_pose = None
         self.last_cov = None
         self.pose_type = None
+        self.samples = []   # raw time-series
         # Default RTAB-Map localization pose usually PoseWithCovarianceStamped.
         if args.msg_type == 'pose_stamped':
             self.sub = self.create_subscription(PoseStamped, args.pose_topic, self.pose_cb_stamped, 30)
@@ -40,6 +42,14 @@ class LocalizationLogger(Node):
             'yaw': float(yaw_from_quaternion(q)),
         }
         self.last_cov = cov
+        cx = cy = cyaw = ''
+        if cov is not None and len(cov) >= 36:
+            cx, cy, cyaw = float(cov[0]), float(cov[7]), float(cov[35])
+        self.samples.append({
+            't': now, 'x': float(p.x), 'y': float(p.y), 'z': float(p.z),
+            'yaw': float(yaw_from_quaternion(q)),
+            'cov_x': cx, 'cov_y': cy, 'cov_yaw': cyaw,
+        })
 
     def pose_cb_cov(self, msg):
         self.pose_type = 'PoseWithCovarianceStamped'
@@ -108,7 +118,25 @@ def main():
 
     header = list(row.keys())
     append_csv(os.path.join(outdir, 'localization_trials.csv'), header, row)
-    print('\nHasil tersimpan:', os.path.join(outdir, 'localization_trials.csv'))
+
+    # ---- RAW time-series (ratusan baris) untuk diproses sendiri ----
+    raw_dir = ensure_dir(os.path.join(outdir, 'raw'))
+    raw_path = os.path.join(raw_dir, f'loc_{args.trial}.csv')
+    if node.samples:
+        t0 = node.samples[0]['t']
+        with open(raw_path, 'w', newline='', encoding='utf-8') as f:
+            w = csv.writer(f)
+            w.writerow(['t_rel_s', 'x_m', 'y_m', 'z_m', 'yaw_rad',
+                        'cov_x', 'cov_y', 'cov_yaw'])
+            for s in node.samples:
+                w.writerow([round(s['t'] - t0, 4), round(s['x'], 4),
+                            round(s['y'], 4), round(s['z'], 4),
+                            round(s['yaw'], 4), s['cov_x'], s['cov_y'], s['cov_yaw']])
+        print('\nHasil summary :', os.path.join(outdir, 'localization_trials.csv'))
+        print('Raw time-series:', raw_path, f'({len(node.samples)} baris)')
+    else:
+        print('\nHasil summary :', os.path.join(outdir, 'localization_trials.csv'))
+        print('Raw time-series: (tidak ada pose diterima)')
     print(row)
 
     node.destroy_node()

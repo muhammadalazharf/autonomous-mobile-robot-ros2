@@ -27,6 +27,15 @@ import os
 from ros_helpers import ensure_dir, now_iso, safe_float
 
 
+# ---------------------------------------------------------------- helper
+def _is_num(v):
+    try:
+        float(v)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
 # ---------------------------------------------------------------- baca CSV
 def read_csv(path):
     if not os.path.exists(path):
@@ -65,7 +74,7 @@ def write_master_csv(out_path, odom, loc, nav, snap):
 
 
 # ---------------------------------------------------------------- Excel
-def build_excel(out_path, odom, loc, nav, snap):
+def build_excel(out_path, odom, loc, nav, snap, raw_dir=None):
     try:
         from openpyxl import Workbook
         from openpyxl.styles import Font, PatternFill, Alignment
@@ -112,6 +121,9 @@ def build_excel(out_path, odom, loc, nav, snap):
         autosize(ws)
         return ws
 
+    # chart helper (openpyxl native — tidak butuh matplotlib)
+    from openpyxl.chart import BarChart, LineChart, ScatterChart, Reference, Series
+
     # ---- ODOMETRY ----
     dump_raw('Odometry_Raw', odom)
     ws = wb.create_sheet('Odometry_Summary')
@@ -121,6 +133,7 @@ def build_excel(out_path, odom, loc, nav, snap):
     head = ['Trial', 'Jarak Aktual (m)', 'Jarak Odometry (m)',
             'Selisih (m)', 'Error (%)']
     ws.append(head)
+    odom_hdr_row = ws.max_row
     style_header(ws, ws.max_row)
     errs = []
     for r in odom:
@@ -144,6 +157,32 @@ def build_excel(out_path, odom, loc, nav, snap):
         ws.append([])
         ws.append(['Interpretasi: error <5% sangat baik, 5-10% baik, >10% perlu kalibrasi ulang PPR'])
     autosize(ws)
+
+    # chart perbandingan odometry
+    if odom:
+        data_end = odom_hdr_row + len(odom)
+        cats = Reference(ws, min_col=1, min_row=odom_hdr_row + 1, max_row=data_end)
+        # Bar: aktual vs odom
+        bc = BarChart()
+        bc.type = 'col'
+        bc.title = 'Perbandingan Jarak Aktual vs Odometry'
+        bc.y_axis.title = 'jarak (m)'
+        bc.x_axis.title = 'trial'
+        d = Reference(ws, min_col=2, max_col=3, min_row=odom_hdr_row, max_row=data_end)
+        bc.add_data(d, titles_from_data=True)
+        bc.set_categories(cats)
+        bc.height = 8; bc.width = 16
+        ws.add_chart(bc, 'H3')
+        # Line: error %
+        lc = LineChart()
+        lc.title = 'Error (%) per Trial'
+        lc.y_axis.title = 'error (%)'
+        lc.x_axis.title = 'trial'
+        de = Reference(ws, min_col=5, min_row=odom_hdr_row, max_row=data_end)
+        lc.add_data(de, titles_from_data=True)
+        lc.set_categories(cats)
+        lc.height = 8; lc.width = 16
+        ws.add_chart(lc, 'H20')
 
     # ---- LOCALIZATION ----
     dump_raw('Localization_Raw', loc)
@@ -194,6 +233,38 @@ def build_excel(out_path, odom, loc, nav, snap):
     ws.append([])
     ws.append(['Interpretasi: Global Path=YA + cmd_vel Aktif=YA + Robot Bergerak=YA → demo navigasi berhasil'])
     autosize(ws)
+
+    # ---- RAW TIME-SERIES (per trial) + chart trajektori ----
+    if raw_dir and os.path.isdir(raw_dir):
+        raw_files = sorted(f for f in os.listdir(raw_dir) if f.endswith('.csv'))
+        for fname in raw_files:
+            rows = read_csv(os.path.join(raw_dir, fname))
+            if not rows:
+                continue
+            # nama sheet: RAW_<file tanpa ekstensi>, batas 31 char Excel
+            sname = ('RAW_' + fname[:-4])[:31]
+            ws = wb.create_sheet(sname)
+            headers = list(rows[0].keys())
+            ws.append(headers)
+            style_header(ws)
+            for r in rows:
+                ws.append([safe_float(r[h]) if _is_num(r[h]) else r[h]
+                           for h in headers])
+            autosize(ws, maxw=16)
+            # chart trajektori x-y untuk file pose/odom
+            if 'x_m' in headers and 'y_m' in headers:
+                end = len(rows) + 1
+                ix = headers.index('x_m') + 1
+                iy = headers.index('y_m') + 1
+                sc = ScatterChart()
+                sc.title = f'Lintasan {fname[:-4]} (x vs y)'
+                sc.x_axis.title = 'x (m)'; sc.y_axis.title = 'y (m)'
+                xs = Reference(ws, min_col=ix, min_row=2, max_row=end)
+                ys = Reference(ws, min_col=iy, min_row=2, max_row=end)
+                sc.series.append(Series(ys, xs, title='lintasan'))
+                sc.height = 10; sc.width = 14
+                anchor = get_column_letter(len(headers) + 2) + '2'
+                ws.add_chart(sc, anchor)
 
     # ---- TOPIC SNAPSHOT ----
     dump_raw('Topic_Snapshot', snap)
@@ -270,7 +341,8 @@ def main():
     print(f' CSV   : {os.path.join(indir, "amr_test_recap.csv")}  ({n} baris)')
 
     xlsx = build_excel(os.path.join(indir, 'amr_test_recap.xlsx'),
-                       odom, loc, nav, snap)
+                       odom, loc, nav, snap,
+                       raw_dir=os.path.join(indir, 'raw'))
     if xlsx:
         print(f' XLSX  : {xlsx}')
         print('         → buka di Excel, sheet *_Summary siap salin ke laporan')

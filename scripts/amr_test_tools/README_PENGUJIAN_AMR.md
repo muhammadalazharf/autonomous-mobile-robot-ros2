@@ -169,20 +169,35 @@ python3 $TOOLS/make_master_recap.py --input ~/amr_test_results
 ```
 Output:
 ```
-~/amr_test_results/amr_test_recap.csv    (mentah, universal)
-~/amr_test_results/amr_test_recap.xlsx   ← UTAMA, multi-sheet siap laporan
+~/amr_test_results/
+├── odometry_trials.csv          (summary 1 baris/trial)
+├── localization_trials.csv
+├── navigation_trials.csv
+├── raw/                         ← DATA MENTAH time-series (ratusan baris/trial)
+│   ├── odom_O01.csv             (t, x, y, yaw, jarak_kumulatif, v_instan)
+│   ├── loc_L01.csv              (t, x, y, z, yaw, cov_x, cov_y, cov_yaw)
+│   ├── nav_cmd_N01.csv          (t, linear_x, angular_z)
+│   └── nav_odom_N01.csv         (t, x, y, yaw, jarak_kumulatif)
+├── amr_test_recap.csv           (mentah gabungan, universal)
+└── amr_test_recap.xlsx          ← UTAMA, multi-sheet siap laporan
 ```
 Isi `.xlsx`:
 | Sheet | Isi |
 |---|---|
 | `INFO` | ringkasan jumlah trial |
-| `Odometry_Raw` / `Odometry_Summary` | tabel + rata-rata % error (warna: hijau<5%, kuning<10%, merah>10%) |
+| `Odometry_Raw` / `Odometry_Summary` | tabel + rata-rata % error (warna) **+ chart bar aktual-vs-odom & line error%** |
 | `Localization_Raw` / `Localization_Summary` | status lock, rate, pose terakhir |
 | `Navigation_Raw` / `Navigation_Summary` | path, cmd_vel aktif, robot bergerak, displacement |
+| `RAW_odom_*`, `RAW_loc_*`, `RAW_nav_*` | **time-series mentah (ratusan baris) + chart lintasan x-y** |
 | `Topic_Snapshot` | type + rate tiap topik |
 | `Evidence_Index` | checklist bukti (otomatis + manual) |
 
-**Ambil file `amr_test_recap.xlsx` ini → buka di Excel → sheet `*_Summary` tinggal disalin ke laporan.**
+**3 lapis data dari satu pengujian:**
+1. **Raw** (`raw/*.csv` + sheet `RAW_*`) → kamu proses sendiri sesuka hati
+2. **Summary** (sheet `*_Summary`) → tabel siap salin ke laporan
+3. **Perbandingan** (chart di `Odometry_Summary` + `RAW_*`) → grafik siap screenshot
+
+**Ambil `amr_test_recap.xlsx` → semua sudah ada di dalamnya.**
 
 ---
 
