@@ -143,8 +143,14 @@ def main():
     print('Raw time-series:', raw_path, f'({len(node.samples)} baris)')
     print(row)
 
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        node.destroy_node()
+    except Exception:
+        pass
+    try:
+        rclpy.shutdown()
+    except Exception:
+        pass
 
 
 if __name__ == '__main__':
