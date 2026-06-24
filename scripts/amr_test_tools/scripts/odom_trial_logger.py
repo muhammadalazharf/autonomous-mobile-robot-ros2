@@ -70,9 +70,11 @@ def main():
     node.samples = []
     node.recording = True
     t_start = time.time()
-    input('Gerakkan robot sampai titik akhir. Tekan ENTER untuk berhenti rekam...')
+    print('>>> REKAM DIMULAI — gerakkan robot sekarang...')
+    input('Tekan ENTER lagi untuk BERHENTI rekam...')
     node.recording = False
     t_end = time.time()
+    print(f'>>> REKAM BERHENTI — {len(node.samples)} sampel terkumpul ({round(t_end - t_start, 1)} s)')
 
     if len(node.samples) < 2:
         print('ERROR: Sampel odom terlalu sedikit.')
