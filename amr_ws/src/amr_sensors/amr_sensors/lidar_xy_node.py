@@ -139,8 +139,8 @@ class LidarXYNode(Node):
                 nearest_x = x
                 nearest_y = y
 
-            # Rekam ke CSV
-            if self._csv_writer and self._scan_count % 10 == 0:
+            # Rekam ke CSV — rekam tiap scan (bukan tiap ke-10)
+            if self._csv_writer:
                 self._csv_writer.writerow([
                     self._scan_count, i,
                     f'{sudut:.4f}', f'{math.degrees(sudut):.1f}',
@@ -149,6 +149,10 @@ class LidarXYNode(Node):
 
         marker_array.markers.append(points_marker)
         self._pub_markers.publish(marker_array)
+
+        # Flush CSV setiap scan supaya data selamat kalau Ctrl+C mendadak
+        if self._csv_file:
+            self._csv_file.flush()
 
         # === Marker obstacle terdekat: bola merah + teks jarak ===
         if nearest_range < float('inf'):
@@ -187,6 +191,10 @@ class LidarXYNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = LidarXYNode()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
