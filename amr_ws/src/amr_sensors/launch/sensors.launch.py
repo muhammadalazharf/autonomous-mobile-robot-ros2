@@ -40,7 +40,10 @@ def generate_launch_description():
         executable='realsense2_camera_node',
         name='camera',
         namespace='camera',
-        parameters=[config],
+        parameters=[config, {
+            'rgb_camera.color_profile': '848x480x30',
+            'depth_module.depth_profile': '848x480x30',
+        }],
     )
 
     imu_merger = Node(
