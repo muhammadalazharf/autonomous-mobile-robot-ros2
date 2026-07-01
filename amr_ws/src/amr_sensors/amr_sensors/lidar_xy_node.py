@@ -63,7 +63,7 @@ class LidarXYNode(Node):
         self.get_logger().info('LiDAR X,Y node aktif — visualisasi + rekam data')
 
     def _setup_csv(self):
-        record_dir = self.get_parameter('record_dir').value
+        record_dir = os.path.expanduser(self.get_parameter('record_dir').value)
         os.makedirs(record_dir, exist_ok=True)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         path = os.path.join(record_dir, f'lidar_{timestamp}.csv')

@@ -31,5 +31,5 @@ camera:
 lidar_xy:
   ros__parameters:
     record: false
-    record_dir: '/home/azhar/lidar_data'
+    record_dir: '~/lidar_data'
     max_display_range: 12.0
