@@ -37,6 +37,7 @@
 #define SERIAL_PORT  "/dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_206833894152-if00"
 #define BAUD_RATE    B115200
 #define MAX_PWM      4000
+#define MAX_PWM_STEP 250             // batas perubahan PWM per pesan (anti-plugging / lonjakan arus)
 #define MAX_STEER    45
 #define STEER_TRIM   -5
 #define DEADMAN_BTN  5                // R1 button on PS4/PS5 DualShock
@@ -118,6 +119,7 @@ private:
   bool running_;
   bool manual_override_ = false;
   bool autonomous_active_ = false;
+  int  last_velocity_ = 0;   // PWM terakhir yang dikirim (untuk slew limiter)
 
   void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
   {
@@ -136,6 +138,7 @@ private:
 
     if (!deadman) {
       if (!autonomous_active_) {
+        last_velocity_ = 0;   // R1 dilepas = stop segera (aman, bukan reverse)
         send_command(0, STEER_TRIM);
       }
       return;
@@ -152,6 +155,7 @@ private:
     velocity = std::max(-MAX_PWM,  std::min(MAX_PWM,  velocity));
     steering = std::max(-MAX_STEER, std::min(MAX_STEER, steering));
 
+    velocity = apply_slew(velocity);   // landaikan perubahan → cegah lonjakan arus
     send_command(velocity, steering);
   }
 
@@ -184,6 +188,7 @@ private:
     velocity = std::max(-MAX_PWM,  std::min(MAX_PWM,  velocity));
     steering = std::max(-MAX_STEER, std::min(MAX_STEER, steering));
 
+    velocity = apply_slew(velocity);   // landaikan perubahan → cegah lonjakan arus
     send_command(velocity, steering);
   }
 
@@ -200,6 +205,7 @@ private:
       auto joy_elapsed_ms = (now - last_joy_time_).nanoseconds() / 1000000;
       if (joy_elapsed_ms > joy_timeout_ms) {
         manual_override_ = false;
+        last_velocity_ = 0;
         send_command(0, STEER_TRIM);
         RCLCPP_WARN(this->get_logger(),
           "[WATCHDOG] /joy timeout (%ld ms) — joystick hilang (Bluetooth?), "
@@ -216,10 +222,24 @@ private:
 
     if (elapsed_ms > timeout_ms) {
       autonomous_active_ = false;
+      last_velocity_ = 0;
       send_command(0, STEER_TRIM);
       RCLCPP_WARN(this->get_logger(),
         "[WATCHDOG] cmd_vel timeout (%ld ms) — motor stopped", elapsed_ms);
     }
+  }
+
+  // Slew-rate limiter: batasi perubahan PWM per pesan supaya tidak ada lonjakan
+  // arus mendadak. Kalau stick dibanting maju→mundur (V:+4000 → V:-4000), tanpa
+  // ini motor "plugging" (arus melonjak ~2x) → transien listrik → kartu Wi-Fi+BT
+  // NUC reset / brownout. Dengan slew, transisi besar dilandaikan lewat nol.
+  int apply_slew(int target)
+  {
+    int delta = target - last_velocity_;
+    if (delta >  MAX_PWM_STEP) delta =  MAX_PWM_STEP;
+    if (delta < -MAX_PWM_STEP) delta = -MAX_PWM_STEP;
+    last_velocity_ += delta;
+    return last_velocity_;
   }
 
   void send_command(int velocity, int steering)
