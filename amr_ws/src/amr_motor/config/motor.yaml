@@ -1,0 +1,13 @@
+# ============================================================
+# Parameter STM32 bridge — SATU-SATUNYA tempat ditulis.
+# JANGAN tulis ulang di launch file. (Aturan Modul 3)
+# ============================================================
+
+stm32_bridge:
+  ros__parameters:
+    serial_port: '/dev/stm32'     # udev symlink → ttyACM0
+    baud_rate: 115200             # sesuaikan jika firmware berbeda
+    wheelbase: 0.5                # meter (terukur, dari HANDOVER)
+    max_pwm: 255                  # nilai PWM maksimum ke STM32
+    max_speed: 0.5                # m/s yang dipetakan ke max_pwm
+    max_steering_angle: 30.0      # derajat maksimum kemudi
