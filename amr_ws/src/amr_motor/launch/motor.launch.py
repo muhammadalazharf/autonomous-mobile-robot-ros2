@@ -17,6 +17,13 @@ def generate_launch_description():
         get_package_share_directory('amr_motor'),
         'config', 'motor.yaml')
 
+    joy_node = Node(
+        package='joy',
+        executable='joy_node',
+        name='joy_node',
+        parameters=[{'dev': '/dev/input/js0'}],
+    )
+
     stm32_bridge = Node(
         package='amr_motor',
         executable='stm32_bridge',
@@ -24,4 +31,4 @@ def generate_launch_description():
         parameters=[config],
     )
 
-    return LaunchDescription([stm32_bridge])
+    return LaunchDescription([joy_node, stm32_bridge])
