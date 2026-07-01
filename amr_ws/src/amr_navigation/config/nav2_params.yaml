@@ -1,0 +1,177 @@
+# ============================================================
+# Nav2 — SATU-SATUNYA tempat parameter navigasi ditulis.
+# JANGAN tulis ulang di launch file. (Aturan Modul 3)
+#
+# ⚠️ UKUR_DI_NUC: parameter yang ditandai ini HARUS diganti
+# dengan data nyata hasil pengukuran di robot fisik.
+# ============================================================
+
+bt_navigator:
+  ros__parameters:
+    global_frame: map
+    robot_base_frame: base_footprint
+    odom_topic: /odometry/filtered
+    # Behavior Tree TANPA spin (Ackermann tidak bisa putar di tempat!)
+    default_nav_to_pose_bt_xml: ''   # pakai default Nav2, tapi tanpa Spin
+    plugin_lib_names:
+      - nav2_compute_path_to_pose_action_bt_node
+      - nav2_follow_path_action_bt_node
+      - nav2_back_up_action_bt_node     # mundur = bisa untuk Ackermann
+      - nav2_wait_action_bt_node        # tunggu = bisa untuk Ackermann
+      # TIDAK ADA nav2_spin — Ackermann TIDAK BISA putar di tempat!
+      - nav2_clear_costmap_service_bt_node
+      - nav2_is_stuck_condition_bt_node
+      - nav2_goal_reached_condition_bt_node
+      - nav2_rate_controller_bt_node
+      - nav2_recovery_node_bt_node
+      - nav2_pipeline_sequence_bt_node
+      - nav2_round_robin_node_bt_node
+
+controller_server:
+  ros__parameters:
+    controller_frequency: 20.0
+    min_x_velocity_threshold: 0.05
+    min_theta_velocity_threshold: 0.05
+    progress_checker_plugin: progress_checker
+    goal_checker_plugins: [goal_checker]
+    controller_plugins: [FollowPath]
+
+    progress_checker:
+      plugin: nav2_controller::SimpleProgressChecker
+      required_movement_radius: 0.3
+      movement_time_allowance: 15.0
+
+    goal_checker:
+      plugin: nav2_controller::SimpleGoalChecker
+      xy_goal_tolerance: 0.20
+      yaw_goal_tolerance: 0.25
+      stateful: true
+
+    FollowPath:
+      plugin: nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController
+      desired_linear_vel: 0.3
+      lookahead_dist: 0.6
+      min_lookahead_dist: 0.3
+      max_lookahead_dist: 0.9
+      use_velocity_scaled_lookahead_dist: true
+      use_rotate_to_heading: false        # WAJIB false untuk Ackermann!
+      use_cost_regulated_linear_vel_scaling: true
+      regulated_linear_scaling_min_radius: 0.5
+      regulated_linear_scaling_min_speed: 0.1
+      max_angular_accel: 1.5
+      allow_reversing: true               # Ackermann bisa mundur
+
+planner_server:
+  ros__parameters:
+    planner_plugins: [GridBased]
+
+    GridBased:
+      plugin: nav2_smac_planner/SmacPlannerHybrid
+      # ⚠️ UKUR_DI_NUC: ganti dengan hasil pengukuran lingkaran!
+      minimum_turning_radius: 0.55        # PLACEHOLDER — ukur di NUC!
+      analytic_expansion_max_length: 3.0   # ≥ 4-5x turning radius
+      motion_model_for_search: REEDS_SHEPP  # bisa maju + mundur
+      cost_travel_multiplier: 2.0
+      max_iterations: 1000000
+      max_on_approach_iterations: 1000
+      angle_quantization_bins: 72
+      allow_primitive_interpolation: false
+      smooth_path: true
+
+      smoother:
+        max_iterations: 1000
+        w_smooth: 0.3
+        w_data: 0.2
+        tolerance: 1.0e-10
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      update_frequency: 5.0
+      publish_frequency: 2.0
+      global_frame: odom
+      robot_base_frame: base_footprint
+      rolling_window: true
+      width: 5
+      height: 5
+      resolution: 0.05
+      # ⚠️ UKUR_DI_NUC: ukur panjang dan lebar robot dari ujung terluar
+      # Format: [[depan-kanan], [depan-kiri], [belakang-kiri], [belakang-kanan]]
+      # Contoh robot 50cm panjang × 40cm lebar:
+      #   footprint: [[0.25, -0.20], [0.25, 0.20], [-0.25, 0.20], [-0.25, -0.20]]
+      footprint: [[0.25, -0.20], [0.25, 0.20], [-0.25, 0.20], [-0.25, -0.20]]
+      plugins: [obstacle_layer, inflation_layer]
+
+      obstacle_layer:
+        plugin: nav2_costmap_2d::ObstacleCostLayer
+        enabled: true
+        observation_sources: scan
+        scan:
+          topic: /scan
+          max_obstacle_height: 2.0
+          clearing: true
+          marking: true
+          data_type: LaserScan
+          raytrace_max_range: 12.0
+          obstacle_max_range: 10.0
+
+      inflation_layer:
+        plugin: nav2_costmap_2d::InflationLayer
+        # ⚠️ UKUR_DI_NUC: sesuaikan dengan lebar robot + margin
+        inflation_radius: 0.10           # bantalan 10cm di luar footprint
+        cost_scaling_factor: 5.0
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      update_frequency: 1.0
+      publish_frequency: 0.5
+      global_frame: map
+      robot_base_frame: base_footprint
+      # DIPERBAIKI: pakai static map di frame 'map' (bukan rolling di 'odom')
+      rolling_window: false
+      track_unknown_space: true
+      resolution: 0.05
+      # ⚠️ UKUR_DI_NUC: SAMA dengan footprint di local_costmap
+      footprint: [[0.25, -0.20], [0.25, 0.20], [-0.25, 0.20], [-0.25, -0.20]]
+      plugins: [static_layer, obstacle_layer, inflation_layer]
+
+      static_layer:
+        plugin: nav2_costmap_2d::StaticLayer
+        map_subscribe_transient_local: true
+
+      obstacle_layer:
+        plugin: nav2_costmap_2d::ObstacleCostLayer
+        enabled: true
+        observation_sources: scan
+        scan:
+          topic: /scan
+          max_obstacle_height: 2.0
+          clearing: true
+          marking: true
+          data_type: LaserScan
+
+      inflation_layer:
+        plugin: nav2_costmap_2d::InflationLayer
+        inflation_radius: 0.25
+        cost_scaling_factor: 5.0
+
+# Recovery behaviors — TANPA Spin (Ackermann tidak bisa putar di tempat!)
+behavior_server:
+  ros__parameters:
+    behavior_plugins: [backup, wait]     # TIDAK ADA spin!
+
+    backup:
+      plugin: nav2_behaviors/BackUp
+
+    wait:
+      plugin: nav2_behaviors/Wait
+
+velocity_smoother:
+  ros__parameters:
+    smoothing_frequency: 20.0
+    max_velocity: [0.5, 0.0, 0.8]       # [vx, vy(0 utk Ackermann), vyaw]
+    min_velocity: [-0.3, 0.0, -0.8]     # mundur dibolehkan
+    max_accel: [0.5, 0.0, 1.5]
+    max_decel: [-1.0, 0.0, -1.5]
+    deadband_velocity: [0.05, 0.0, 0.05]

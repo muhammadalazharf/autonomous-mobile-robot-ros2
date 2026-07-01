@@ -1,0 +1,30 @@
+# ============================================================
+# Brain — SATU-SATUNYA tempat parameter perilaku ditulis.
+# JANGAN tulis ulang di launch file. (Aturan Modul 3)
+# ============================================================
+
+brain:
+  ros__parameters:
+    # Sensor yang WAJIB hidup agar robot boleh bergerak
+    critical_sensors:
+      - '/scan'                         # LiDAR — mata horizontal
+      - '/camera/camera/color/image_raw' # Kamera — mata visual
+
+    # Sensor tambahan (warning kalau mati, tapi tidak stop)
+    warning_sensors:
+      - '/imu/data'                     # IMU
+      - '/camera/camera/depth/image_rect_raw'  # Depth
+
+    # Timeout: berapa detik tanpa pesan = sensor dianggap mati
+    sensor_timeout: 3.0
+
+    # Stuck detection: berapa detik tidak bergerak = dianggap terjebak
+    stuck_timeout: 15.0
+    stuck_distance_threshold: 0.10      # kurang dari 10cm dalam stuck_timeout = stuck
+
+    # Recovery: berapa kali coba sebelum menyerah
+    max_recovery_attempts: 3
+
+    # Kecepatan mundur saat recovery
+    recovery_reverse_speed: -0.15
+    recovery_reverse_duration: 2.0      # mundur 2 detik

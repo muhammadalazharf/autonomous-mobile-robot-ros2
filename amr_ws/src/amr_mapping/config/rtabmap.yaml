@@ -1,0 +1,74 @@
+# ============================================================
+# RTAB-Map — SATU-SATUNYA tempat parameter mapping ditulis.
+# JANGAN tulis ulang di launch file. (Aturan Modul 3)
+# ============================================================
+
+# --- rgbd_sync: gabung color + depth jadi satu paket ---
+rgbd_sync:
+  ros__parameters:
+    qos: 1                          # BestEffort — WAJIB cocok dengan RealSense
+    qos_image: 1                    # BestEffort — INI yang mematikan sistem lama
+    approx_sync: false              # RealSense hardware-synced, tidak perlu approx
+
+# --- VIO: estimasi gerak dari kamera + IMU ---
+vio:
+  ros__parameters:
+    qos: 1                          # BestEffort
+    qos_image: 1                    # BestEffort
+    frame_id: base_footprint
+    odom_frame_id: odom
+    publish_tf: false               # EKF yang pegang TF odom→base_footprint (Modul 2)
+    wait_imu_to_init: true          # Tunggu IMU sebelum mulai — jangan jalan tanpa tambalan
+
+    # Strategi odometry
+    Odom/Strategy: 0                # Frame-to-Map (lebih stabil dari Frame-to-Frame)
+    Odom/ResetCountdown: 5          # Toleransi motion blur: 5 frame gagal sebelum reset
+    Odom/MaxVariance: 0.05          # Buang estimasi yang terlalu tidak yakin
+    Vis/MinInliers: 8               # Minimal 8 fitur cocok, kurang = pose tidak valid
+    Reg/Force3DoF: true             # Robot ground vehicle: x, y, yaw saja
+
+    # Fitur visual
+    Vis/FeatureType: 6              # ORB (cepat, cukup untuk indoor)
+    Vis/MaxFeatures: 1000           # Banyak fitur = lebih tahan tembok polos
+
+# --- rtabmap (SLAM): mapping + loop closure ---
+rtabmap:
+  ros__parameters:
+    qos: 1                          # BestEffort untuk /scan
+    qos_image: 1                    # BestEffort untuk gambar
+
+    frame_id: base_footprint
+    odom_frame_id: odom
+    map_frame_id: map
+
+    subscribe_rgbd: true
+    subscribe_rgb: false            # Cegah konflik dengan subscribe_rgbd
+    subscribe_scan: true            # LiDAR masuk untuk ICP + grid 2D
+    subscribe_odom_info: true       # Info loop closure lebih lengkap
+
+    # Database
+    database_path: '~/.ros/rtabmap.db'
+    Db/Sqlite3InMemory: true        # Mapping di RAM, save ke disk saat shutdown
+
+    # Deteksi loop closure
+    Rtabmap/DetectionRate: 2.0      # Cek 2x per detik
+    Rtabmap/LoopThr: 0.11           # Threshold default RTAB-Map (JANGAN turunkan dulu)
+    Mem/STMSize: 10                 # Node cepat pindah ke Working Memory
+    Mem/IncrementalMemory: true     # Mode mapping (false = mode localization)
+
+    # Registrasi: Visual + ICP
+    Reg/Strategy: 2                 # 0=vis, 1=icp, 2=vis+icp
+
+    # ICP — diperbaiki untuk LiDAR single-ring 2D
+    Icp/PointToPlane: false         # DIPERBAIKI: point-to-point untuk single-ring
+    Icp/VoxelSize: 0.0              # DIPERBAIKI: jangan decimate scan yang sudah sparse
+    Icp/MaxCorrespondenceDistance: 0.15
+
+    # Grid 2D (dari LiDAR, bukan depth)
+    Grid/FromDepth: false           # Grid dari LiDAR scan, bukan depth image
+    Grid/RangeMax: 12.0
+    Grid/CellSize: 0.05
+
+    # Cloud 3D (dari depth image)
+    Grid/3D: true
+    cloud_voxel_size: 0.03

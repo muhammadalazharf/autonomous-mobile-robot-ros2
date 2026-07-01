@@ -1,0 +1,10 @@
+# ============================================================
+# Parameter encoder odometry — SATU-SATUNYA tempat.
+# JANGAN tulis ulang di launch file.
+# ============================================================
+
+encoder_odom:
+  ros__parameters:
+    wheel_radius: 0.0775            # meter (jari-jari roda)
+    pulses_per_revolution: 3858     # VERIFIKASI di NUC: putar roda 1x, hitung pulsa
+    publish_rate: 20.0              # Hz
