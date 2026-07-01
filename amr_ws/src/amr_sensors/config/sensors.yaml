@@ -1,0 +1,35 @@
+# ============================================================
+# SATU-SATUNYA tempat parameter sensor ditulis.
+# JANGAN tulis parameter sensor di launch file.
+# ============================================================
+
+# --- RPLIDAR C1 ---
+rplidar:
+  ros__parameters:
+    serial_port: '/dev/rplidar'
+    serial_baudrate: 460800
+    frame_id: 'laser_frame'
+    angle_compensate: true
+    scan_mode: 'Standard'
+
+# --- RealSense D455 ---
+# JANGAN ubah resolusi dari 848x480x30 (Hard Rule #2)
+camera:
+  ros__parameters:
+    enable_color: true
+    enable_depth: true
+    enable_accel: true
+    enable_gyro: true
+    rgb_camera.color_profile: '848x480x30'
+    depth_module.depth_profile: '848x480x30'
+    enable_infra1: false
+    enable_infra2: false
+    publish_tf: false
+    unite_imu_method: 0
+
+# --- LiDAR X,Y Study ---
+lidar_xy:
+  ros__parameters:
+    record: false
+    record_dir: '/home/azhar/lidar_data'
+    max_display_range: 12.0

@@ -1,0 +1,55 @@
+# ============================================================
+# EKF (Extended Kalman Filter) — robot_localization
+# ============================================================
+# Fungsi: gabungkan VIO + encoder menjadi satu pose /odometry/filtered
+#
+# Keputusan desain (Modul 2):
+#   - VIO  = sumber utama (kovarians kecil = sangat dipercaya)
+#   - Encoder = input lemah (kovarians besar = curiga, backup saat VIO buta)
+#
+# Output: publish odom → base_footprint TF + /odometry/filtered
+# ============================================================
+
+ekf_filter_node:
+  ros__parameters:
+    frequency: 50.0
+    two_d_mode: true           # Robot ground vehicle: x, y, yaw saja
+    publish_tf: true           # EKF yang pegang TF odom → base_footprint
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_footprint
+    world_frame: odom
+
+    # ── Sumber 1: VIO (sumber utama, sangat dipercaya) ──
+    odom0: /rtabmap/odom
+    odom0_config: [true, true, false,    # x, y, z (z diabaikan, 2D)
+                   false, false, true,    # roll, pitch, yaw
+                   true, true, false,     # vx, vy, vz
+                   false, false, true,    # vroll, vpitch, vyaw
+                   false, false, false]   # ax, ay, az
+    odom0_differential: false
+    odom0_relative: false
+    odom0_queue_size: 10
+
+    # ── Sumber 2: Encoder (input lemah, curiga) ──
+    odom1: /encoder_odom
+    odom1_config: [false, false, false,   # posisi x,y TIDAK dipakai (terlalu slip)
+                   false, false, false,   # orientasi TIDAK dipakai
+                   true, false, false,    # hanya vx (kecepatan maju)
+                   false, false, false,   # rotasi TIDAK dipakai
+                   false, false, false]   # akselerasi TIDAK dipakai
+    odom1_differential: false
+    odom1_relative: false
+    odom1_queue_size: 5
+
+    # ── Sumber 3: IMU (sudah di dalam VIO, tapi bisa juga langsung) ──
+    # Dikomentari dulu — IMU sudah masuk lewat VIO.
+    # Aktifkan jika ingin IMU langsung membantu EKF untuk yaw rate.
+    # imu0: /imu/data
+    # imu0_config: [false, false, false,
+    #               false, false, false,
+    #               false, false, false,
+    #               false, false, true,    # vyaw dari gyro
+    #               false, false, false]
+    # imu0_differential: false
+    # imu0_queue_size: 10
