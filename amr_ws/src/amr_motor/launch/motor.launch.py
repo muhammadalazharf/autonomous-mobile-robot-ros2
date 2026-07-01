@@ -23,9 +23,14 @@ def generate_launch_description():
         name='joy_node',
         parameters=[{
             'dev': '/dev/input/js0',
-            # Republish /joy ~20Hz walau stick diam, supaya watchdog joystick di
-            # stm32_bridge bisa membedakan "stick diam" vs "Bluetooth putus".
-            'autorepeat_rate': 20.0,
+            # PENTING: autorepeat HARUS 0 (mati). Kalau >0, joy_node terus
+            # mem-publish perintah joystick TERAKHIR walau controller sudah
+            # putus (Bluetooth reset) — ini melumpuhkan watchdog joystick di
+            # stm32_bridge dan menahan perintah mundur ke motor. Dengan
+            # autorepeat mati, saat BT putus /joy benar-benar berhenti →
+            # watchdog fire → motor di-stop. Jitter analog stick sudah cukup
+            # menjaga /joy tetap mengalir saat driving normal.
+            'autorepeat_rate': 0.0,
         }],
     )
 
