@@ -63,6 +63,7 @@ public:
     this->declare_parameter("autonomous_enabled", false);
     this->declare_parameter("max_speed_mps", 1.0);
     this->declare_parameter("cmd_vel_timeout_ms", 500);
+    this->declare_parameter("joy_timeout_ms", 500);
 
     joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
       "/joy", 10,
@@ -76,6 +77,7 @@ public:
       std::chrono::milliseconds(100),
       std::bind(&STM32Bridge::watchdog_check, this));
     last_cmd_vel_time_ = this->now();
+    last_joy_time_ = this->now();
 
     encoder_pub_ = this->create_publisher<std_msgs::msg::Int32>("/encoder", 10);
 
@@ -110,6 +112,7 @@ private:
   rclcpp::TimerBase::SharedPtr watchdog_timer_;
   rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr encoder_pub_;
   rclcpp::Time last_cmd_vel_time_;
+  rclcpp::Time last_joy_time_;
   std::thread read_thread_;
   int serial_fd_;
   bool running_;
@@ -123,6 +126,9 @@ private:
         "[WARN] Serial port not open! Connect STM32 USB cable.");
       return;
     }
+
+    // Joystick masih hidup — refresh watchdog joystick.
+    last_joy_time_ = this->now();
 
     bool deadman = (msg->buttons.size() > DEADMAN_BTN &&
                     msg->buttons[DEADMAN_BTN] == 1);
@@ -183,11 +189,30 @@ private:
 
   void watchdog_check()
   {
-    if (!autonomous_active_ || manual_override_) return;
+    auto now = this->now();
+
+    // --- Watchdog JOYSTICK ---
+    // Kalau sedang mode manual (R1 ditahan) tapi /joy hilang (mis. Bluetooth
+    // reset saat motor mundur), STM32 akan menahan perintah terakhir dan robot
+    // terus jalan tak terkendali. Deteksi hilangnya /joy → paksa motor stop.
+    if (manual_override_) {
+      int joy_timeout_ms = this->get_parameter("joy_timeout_ms").as_int();
+      auto joy_elapsed_ms = (now - last_joy_time_).nanoseconds() / 1000000;
+      if (joy_elapsed_ms > joy_timeout_ms) {
+        manual_override_ = false;
+        send_command(0, STEER_TRIM);
+        RCLCPP_WARN(this->get_logger(),
+          "[WATCHDOG] /joy timeout (%ld ms) — joystick hilang (Bluetooth?), "
+          "motor DIHENTIKAN", joy_elapsed_ms);
+      }
+      return;  // saat manual, jangan proses watchdog autonomous
+    }
+
+    // --- Watchdog AUTONOMOUS (cmd_vel) ---
+    if (!autonomous_active_) return;
 
     int timeout_ms = this->get_parameter("cmd_vel_timeout_ms").as_int();
-    auto elapsed_ms =
-      (this->now() - last_cmd_vel_time_).nanoseconds() / 1000000;
+    auto elapsed_ms = (now - last_cmd_vel_time_).nanoseconds() / 1000000;
 
     if (elapsed_ms > timeout_ms) {
       autonomous_active_ = false;

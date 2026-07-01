@@ -21,7 +21,12 @@ def generate_launch_description():
         package='joy',
         executable='joy_node',
         name='joy_node',
-        parameters=[{'dev': '/dev/input/js0'}],
+        parameters=[{
+            'dev': '/dev/input/js0',
+            # Republish /joy ~20Hz walau stick diam, supaya watchdog joystick di
+            # stm32_bridge bisa membedakan "stick diam" vs "Bluetooth putus".
+            'autorepeat_rate': 20.0,
+        }],
     )
 
     stm32_bridge = Node(
