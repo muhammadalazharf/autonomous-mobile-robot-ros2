@@ -88,7 +88,7 @@ sebagian besar basis kode terpelihara di repositori tim (kredit di bawah).
 
 Rincian lengkap — setup & dependensi, pembuatan node, perancangan
 publisher–subscriber, pengujian, debugging, dan iterasi perbaikan — ada di
-**[docs/KONTRIBUSI_AZHAR.md](docs/Kontribusi_Proyek.md)**.
+**[docs/KONTRIBUSI_AZHAR.md](docs/KONTRIBUSI_PROYEK.md)**.
 
 Ringkasnya:
 
